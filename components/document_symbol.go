@@ -8,10 +8,6 @@ import (
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
-type sessionKeyType struct{}
-
-var sessionKey = sessionKeyType{}
-
 func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParams) (result *[]defines.DocumentSymbol, err error) {
 	file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
 	res := []defines.DocumentSymbol{}
@@ -28,6 +24,17 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 				End:   defines.Position{Line: uint(pack.ProtoPackage.Position.Line - 1)},
 			},
 		})
+	}
+	for _, imp := range file.Proto().Imports() {
+		res = append(res, defines.DocumentSymbol{
+			Name: imp.ProtoImport.Filename,
+			Kind: defines.SymbolKindFile,
+			SelectionRange: defines.Range{
+				Start: defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
+				End:   defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
+			},
+		})
+
 	}
 	for _, enums := range file.Proto().Enums() {
 		res = append(res, defines.DocumentSymbol{

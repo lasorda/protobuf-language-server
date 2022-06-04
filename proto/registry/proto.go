@@ -1,65 +1,16 @@
 package registry
 
 import (
+	"fmt"
+	"os"
+	"path"
 	"sync"
 
+	"github.com/TobiasYin/go-lsp/logs"
+	"github.com/TobiasYin/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
+	"go.lsp.dev/uri"
 )
-
-// ProtoSet is a registry for Proto.
-type ProtoSet interface {
-	Protos() []Proto
-	Append(proto *protobuf.Proto)
-
-	GetProtoByFilename(filename string) (Proto, bool)
-}
-
-type protoSet struct {
-	protos map[string]Proto
-
-	mu *sync.RWMutex
-}
-
-var _ ProtoSet = (*protoSet)(nil)
-
-// NewProtoSet returns protoSet initialized by provided []*protobuf.Proto.
-func NewProtoSet(protos ...*protobuf.Proto) ProtoSet {
-	protoSet := &protoSet{
-		protos: make(map[string]Proto),
-	}
-	for _, p := range protos {
-		protoSet.protos[p.Filename] = NewProto(p)
-	}
-	return protoSet
-}
-
-func (p *protoSet) Protos() []Proto {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	protos := make([]Proto, 0, len(p.protos))
-	for _, proto := range p.protos {
-		protos = append(protos, proto)
-	}
-	return protos
-}
-
-// Append appends Proto to protoSet.
-// This ensures thread safety.
-func (p *protoSet) Append(proto *protobuf.Proto) {
-	p.mu.Lock()
-	p.protos[proto.Filename] = NewProto(proto)
-	p.mu.Unlock()
-}
-
-// GetProtoByFilename gets Proto by provided Filename.
-// This ensures thread safety.
-func (p *protoSet) GetProtoByFilename(filename string) (pr Proto, ok bool) {
-	p.mu.RLock()
-	pr, ok = p.protos[filename]
-	p.mu.RUnlock()
-	return
-}
 
 // Proto is a registry for protobuf proto.
 type Proto interface {
@@ -69,6 +20,7 @@ type Proto interface {
 	Messages() []Message
 	Enums() []Enum
 	Services() []Service
+	Imports() []*Import
 
 	GetPackageByName(name string) (*Package, bool)
 	GetMessageByName(name string) (Message, bool)
@@ -82,6 +34,8 @@ type Proto interface {
 
 	GetMessageFieldByLine(line int) (*MessageField, bool)
 	GetEnumFieldByLine(line int) (*EnumField, bool)
+
+	GetImportProto(document_uri defines.DocumentUri) (*Proto, error)
 }
 
 type proto struct {
@@ -91,11 +45,13 @@ type proto struct {
 	messages []Message
 	enums    []Enum
 	services []Service
+	imports  []*Import
 
 	packageNameToPackage map[string]*Package
 	messageNameToMessage map[string]Message
 	enumNameToEnum       map[string]Enum
 	serviceNameToService map[string]Service
+	importProto          map[defines.DocumentUri]*Proto
 
 	lineToPackage map[int]*Package
 	lineToMessage map[int]Message
@@ -116,6 +72,7 @@ func NewProto(protoProto *protobuf.Proto) Proto {
 		messageNameToMessage: make(map[string]Message),
 		enumNameToEnum:       make(map[string]Enum),
 		serviceNameToService: make(map[string]Service),
+		importProto:          make(map[defines.DocumentUri]*Proto),
 
 		lineToPackage: make(map[int]*Package),
 		lineToMessage: make(map[int]Message),
@@ -144,6 +101,10 @@ func NewProto(protoProto *protobuf.Proto) Proto {
 			s := NewService(v)
 			proto.services = append(proto.services, s)
 
+		case *protobuf.Import:
+			i := NewImport(v)
+			proto.imports = append(proto.imports, i)
+
 		default:
 		}
 	}
@@ -168,6 +129,10 @@ func NewProto(protoProto *protobuf.Proto) Proto {
 		proto.lineToService[s.Protobuf().Position.Line] = s
 	}
 
+	logs.Println("dddddddddddd", proto.protoProto.Filename)
+	// for _, s := range proto.importProto {
+	//     import_uri, err := getDocumentUriFromImportPath(defines.DocumentUri(proto.protoProto.Filename))
+	// }
 	return proto
 }
 
@@ -200,6 +165,13 @@ func (p *proto) Enums() (enums []Enum) {
 func (p *proto) Services() (svcs []Service) {
 	p.mu.RLock()
 	svcs = p.services
+	p.mu.RUnlock()
+	return
+}
+
+func (p *proto) Imports() (svcs []*Import) {
+	p.mu.RLock()
+	svcs = p.imports
 	p.mu.RUnlock()
 	return
 }
@@ -304,4 +276,27 @@ func (p *proto) GetEnumFieldByLine(line int) (f *EnumField, ok bool) {
 		}
 	}
 	return
+}
+
+func (p *proto) GetImportProto(document_uri defines.DocumentUri) (*Proto, error) {
+	import_proto, ok := p.importProto[document_uri]
+
+	if ok {
+		return import_proto, nil
+	}
+	return nil, fmt.Errorf("%v not found", document_uri)
+}
+
+func getDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
+	pos := path.Dir(uri.URI(cwd).Filename())
+	var res defines.DocumentUri
+	for path.Clean(pos) != "/" {
+		abs_name := path.Join(pos, import_name)
+		_, err := os.Stat(abs_name)
+		if os.IsExist(err) {
+			return defines.DocumentUri(path.Clean(abs_name)), nil
+		}
+		pos = path.Join(pos, "..")
+	}
+	return res, fmt.Errorf("import %v not found", import_name)
 }
