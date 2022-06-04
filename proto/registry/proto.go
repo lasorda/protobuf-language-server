@@ -6,7 +6,6 @@ import (
 	"path"
 	"sync"
 
-	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
 	"go.lsp.dev/uri"
@@ -129,7 +128,7 @@ func NewProto(protoProto *protobuf.Proto) Proto {
 		proto.lineToService[s.Protobuf().Position.Line] = s
 	}
 
-	logs.Println("dddddddddddd", proto.protoProto.Filename)
+	// generate at to to defines
 	// for _, s := range proto.importProto {
 	//     import_uri, err := getDocumentUriFromImportPath(defines.DocumentUri(proto.protoProto.Filename))
 	// }
