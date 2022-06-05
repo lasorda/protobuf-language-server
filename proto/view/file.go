@@ -3,7 +3,7 @@ package view
 import (
 	"context"
 
-	"pls/proto/registry"
+	"pls/proto/parser"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
@@ -20,8 +20,8 @@ type File interface {
 
 type ProtoFile interface {
 	File
-	Proto() registry.Proto
-	SetProto(proto registry.Proto)
+	Proto() parser.Proto
+	SetProto(proto parser.Proto)
 }
 
 // file is a file for changed files.
@@ -38,7 +38,7 @@ var _ File = (*file)(nil)
 
 type protoFile struct {
 	File
-	proto registry.Proto
+	proto parser.Proto
 }
 
 var _ ProtoFile = (*protoFile)(nil)
@@ -59,10 +59,10 @@ func (f *file) SetSaved(saved bool) {
 	f.saved = saved
 }
 
-func (p *protoFile) Proto() registry.Proto {
+func (p *protoFile) Proto() parser.Proto {
 	return p.proto
 }
 
-func (p *protoFile) SetProto(proto registry.Proto) {
+func (p *protoFile) SetProto(proto parser.Proto) {
 	p.proto = proto
 }

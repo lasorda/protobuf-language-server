@@ -5,8 +5,11 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"os"
+	"path"
 	"path/filepath"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp"
@@ -15,7 +18,6 @@ import (
 	"go.lsp.dev/uri"
 
 	"pls/proto/parser"
-	"pls/proto/registry"
 )
 
 type view struct {
@@ -59,7 +61,7 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 	// TODO:
 	//  Control times of parse of proto.
 	//  Currently it parses every time of file change.
-	proto, err := parseProto(data)
+	proto, err := parseProto(document_uri, data)
 
 	if err != nil {
 		return
@@ -117,15 +119,44 @@ func (v *view) openFile(document_uri defines.DocumentUri, data []byte) {
 		},
 	}
 
-	proto, err := parseProto(data)
+	proto, err := parseProto(document_uri, data)
 	if err != nil {
 		return
 	}
 	pf.proto = proto
 	v.filesByURI[document_uri] = pf
-
 }
 
+func (v *view) parseImportProto(document_uri defines.DocumentUri) {
+	proto_file, err := v.GetFile(document_uri)
+	if err != nil {
+		logs.Printf("parseImportProto GetFile err:%v", err)
+		return
+	}
+	for _, i := range proto_file.Proto().Imports() {
+		import_uri, err := getDocumentUriFromImportPath(document_uri, i.ProtoImport.Filename)
+		if err != nil {
+			logs.Printf("parse import err:%v", err)
+			continue
+		}
+		proto_file, err := v.GetFile(import_uri)
+		if proto_file == nil {
+			data, err := os.ReadFile(uri.URI(import_uri).Filename())
+
+			if err != nil {
+				logs.Printf("read file err:%v", err)
+				continue
+			}
+			if !utf8.Valid(data) {
+				data = toUtf8(data)
+			}
+			v.openFile(import_uri, data)
+		}
+		proto_file, err = v.GetFile(import_uri)
+		proto_file.Proto().PutImportProto(import_uri, proto_file.Proto())
+	}
+
+}
 func (v *view) mapFile(document_uri defines.DocumentUri, f ProtoFile) {
 	v.fileMu.Lock()
 
@@ -146,15 +177,36 @@ func newView() *view {
 	}
 }
 
-func parseProto(data []byte) (proto registry.Proto, err error) {
+func parseProto(document_uri defines.DocumentUri, data []byte) (proto parser.Proto, err error) {
 	buf := bytes.NewBuffer(data)
-	proto, err = parser.ParseProto(buf)
+	proto, err = parser.ParseProto(document_uri, buf)
 	if err != nil {
 		logs.Printf("parseProto err %v", err)
 	}
 	return proto, err
 }
 
+func getDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
+	pos := path.Dir(uri.URI(cwd).Filename())
+	var res defines.DocumentUri
+	for path.Clean(pos) != "/" {
+		abs_name := path.Join(pos, import_name)
+		_, err := os.Stat(abs_name)
+		if err == nil {
+			return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+		}
+		pos = path.Join(pos, "..")
+	}
+	return res, fmt.Errorf("import %v not found", import_name)
+}
+
+func toUtf8(iso8859_1_buf []byte) []byte {
+	buf := make([]rune, len(iso8859_1_buf))
+	for i, b := range iso8859_1_buf {
+		buf[i] = rune(b)
+	}
+	return []byte(string(buf))
+}
 func hashContent(content []byte) string {
 	return fmt.Sprintf("%x", sha1.Sum(content))
 }

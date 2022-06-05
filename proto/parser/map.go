@@ -1,4 +1,4 @@
-package registry
+package parser
 
 import protobuf "github.com/emicklei/proto"
 

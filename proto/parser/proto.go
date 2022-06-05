@@ -1,14 +1,11 @@
-package registry
+package parser
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"sync"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
-	"go.lsp.dev/uri"
 )
 
 // Proto is a registry for protobuf proto.
@@ -35,6 +32,7 @@ type Proto interface {
 	GetEnumFieldByLine(line int) (*EnumField, bool)
 
 	GetImportProto(document_uri defines.DocumentUri) (*Proto, error)
+	PutImportProto(import_uri defines.DocumentUri, import_proto Proto)
 }
 
 type proto struct {
@@ -63,7 +61,7 @@ type proto struct {
 var _ Proto = (*proto)(nil)
 
 // NewProto returns Proto initialized by provided *protobuf.Proto.
-func NewProto(protoProto *protobuf.Proto) Proto {
+func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Proto {
 	proto := &proto{
 		protoProto: protoProto,
 
@@ -127,11 +125,6 @@ func NewProto(protoProto *protobuf.Proto) Proto {
 		proto.serviceNameToService[s.Protobuf().Name] = s
 		proto.lineToService[s.Protobuf().Position.Line] = s
 	}
-
-	// generate at to to defines
-	// for _, s := range proto.importProto {
-	//     import_uri, err := getDocumentUriFromImportPath(defines.DocumentUri(proto.protoProto.Filename))
-	// }
 	return proto
 }
 
@@ -173,6 +166,10 @@ func (p *proto) Imports() (svcs []*Import) {
 	svcs = p.imports
 	p.mu.RUnlock()
 	return
+}
+
+func (p *proto) PutImportProto(import_uri defines.DocumentUri, import_proto Proto) {
+	p.importProto[import_uri] = &import_proto
 }
 
 // GetPackageByName gets Package by provided name.
@@ -284,18 +281,4 @@ func (p *proto) GetImportProto(document_uri defines.DocumentUri) (*Proto, error)
 		return import_proto, nil
 	}
 	return nil, fmt.Errorf("%v not found", document_uri)
-}
-
-func getDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
-	pos := path.Dir(uri.URI(cwd).Filename())
-	var res defines.DocumentUri
-	for path.Clean(pos) != "/" {
-		abs_name := path.Join(pos, import_name)
-		_, err := os.Stat(abs_name)
-		if os.IsExist(err) {
-			return defines.DocumentUri(path.Clean(abs_name)), nil
-		}
-		pos = path.Join(pos, "..")
-	}
-	return res, fmt.Errorf("import %v not found", import_name)
 }

@@ -3,17 +3,16 @@ package parser
 import (
 	"io"
 
+	"github.com/TobiasYin/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
-
-	"pls/proto/registry"
 )
 
-// ParseProtos parses protobuf files from filenames and return registry.ProtoSet.
-func ParseProto(r io.Reader) (registry.Proto, error) {
+// ParseProtos parses protobuf files from filenames and return parser.ProtoSet.
+func ParseProto(document_uri defines.DocumentUri, r io.Reader) (Proto, error) {
 	parser := protobuf.NewParser(r)
 	p, err := parser.Parse()
 	if err != nil {
 		return nil, err
 	}
-	return registry.NewProto(p), nil
+	return NewProto(document_uri, p), nil
 }
