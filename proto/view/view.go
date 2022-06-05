@@ -80,6 +80,8 @@ func (v *view) didOpen(document_uri defines.DocumentUri, text []byte) {
 	v.openFiles[document_uri] = true
 	v.openFileMu.Unlock()
 	v.openFile(document_uri, text)
+	// not like include
+	v.parseImportProto(document_uri)
 }
 
 func (v *view) didSave(document_uri defines.DocumentUri) {
@@ -229,7 +231,6 @@ func didChange(ctx context.Context, params *defines.DidChangeTextDocumentParams)
 	text := params.ContentChanges[0].Text
 
 	ViewManager.setContent(ctx, document_uri, []byte(text.(string)))
-
 	return nil
 }
 
