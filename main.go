@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 
 	"pls/components"
 	"pls/proto/view"
@@ -24,7 +25,11 @@ func init() {
 	defer func() {
 		logs.Init(logger)
 	}()
-	logPath = flag.String("logs", "pls.log", "logs file path")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = ""
+	}
+	logPath = flag.String("logs", path.Join(home, ".pls.log"), "logs file path")
 	if logPath == nil || *logPath == "" {
 		logger = log.New(os.Stderr, "", 0)
 		return
