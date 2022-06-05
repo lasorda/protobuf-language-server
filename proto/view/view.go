@@ -136,7 +136,7 @@ func (v *view) parseImportProto(document_uri defines.DocumentUri) {
 		return
 	}
 	for _, i := range proto_file.Proto().Imports() {
-		import_uri, err := getDocumentUriFromImportPath(document_uri, i.ProtoImport.Filename)
+		import_uri, err := GetDocumentUriFromImportPath(document_uri, i.ProtoImport.Filename)
 		if err != nil {
 			logs.Printf("parse import err:%v", err)
 			continue
@@ -188,7 +188,7 @@ func parseProto(document_uri defines.DocumentUri, data []byte) (proto parser.Pro
 	return proto, err
 }
 
-func getDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
+func GetDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
 	pos := path.Dir(uri.URI(cwd).Filename())
 	var res defines.DocumentUri
 	for path.Clean(pos) != "/" {

@@ -2,6 +2,7 @@ package view
 
 import (
 	"context"
+	"strings"
 
 	"pls/proto/parser"
 
@@ -12,6 +13,7 @@ import (
 type File interface {
 	URI() defines.DocumentUri
 	Read(ctx context.Context) ([]byte, string, error)
+	ReadLine(line int) string
 
 	Saved() bool
 	// TODO: Fix appropriate function name.
@@ -29,7 +31,7 @@ type file struct {
 	document_uri defines.DocumentUri
 	data         []byte
 	hash         string
-
+	lines        []string
 	// saved is true if a file has been saved on disk.
 	saved bool
 }
@@ -59,6 +61,15 @@ func (f *file) SetSaved(saved bool) {
 	f.saved = saved
 }
 
+func (f *file) ReadLine(line int) string {
+	if len(f.lines) == 0 {
+		f.lines = strings.Split(string(f.data), "\n")
+	}
+	if line >= len(f.lines) {
+		return ""
+	}
+	return f.lines[line]
+}
 func (p *protoFile) Proto() parser.Proto {
 	return p.proto
 }

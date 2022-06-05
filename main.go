@@ -45,5 +45,6 @@ func main() {
 
 	view.Init(server)
 	server.OnDocumentSymbolWithSliceDocumentSymbol(components.ProvideDocumentSymbol)
+	server.OnDefinition(components.JumpDefine)
 	server.Run()
 }

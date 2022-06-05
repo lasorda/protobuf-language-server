@@ -20,3 +20,4 @@ A language server implementation for Google Protocol Buffers
 ## features
 
 1. DocumentSymbol
+2. Defines
