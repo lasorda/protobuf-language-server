@@ -3,6 +3,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"log"
 	"pls/proto/view"
 	"regexp"
 	"strings"
@@ -54,6 +55,7 @@ func jumpInImport(ctx context.Context, req *defines.DefinitionParams, package_an
 	pos := strings.LastIndexAny(package_and_word, ".")
 
 	if pos == -1 {
+		log.Printf("jumpInImport find packages_name:%v err", package_and_word)
 		return nil, nil
 	}
 	packages_name, word := package_and_word[0:pos], package_and_word[pos+1:]
@@ -70,23 +72,10 @@ func jumpInImport(ctx context.Context, req *defines.DefinitionParams, package_an
 		}
 
 		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == packages_name {
-			// search message
-			for _, message := range import_file.Proto().Messages() {
-				if message.Protobuf().Name == word {
-					line := import_file.ReadLine(message.Protobuf().Position.Line - 1)
-					return &[]defines.LocationLink{{
-						TargetUri: import_uri,
-						TargetSelectionRange: defines.Range{
-							Start: defines.Position{
-								Line:      uint(message.Protobuf().Position.Line) - 1,
-								Character: uint(strings.Index(line, word)),
-							},
-							End: defines.Position{
-								Line:      uint(message.Protobuf().Position.Line) - 1,
-								Character: uint(strings.Index(line, word) + len(word)),
-							}},
-					}}, nil
-				}
+			// same packages_name in different file
+			res, err := searchType(import_file, word, true)
+			if err == nil && len(*res) > 0 {
+				return res, nil
 			}
 		}
 	}
@@ -97,12 +86,17 @@ func jumpInImport(ctx context.Context, req *defines.DefinitionParams, package_an
 func jumpInThisFile(ctx context.Context, req *defines.DefinitionParams, word string) (result *[]defines.LocationLink, err error) {
 	proto_file, _ := view.ViewManager.GetFile(req.TextDocument.Uri)
 
+	return searchType(proto_file, word, true)
+}
+
+func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]defines.LocationLink, err error) {
+
 	// search message
 	for _, message := range proto_file.Proto().Messages() {
 		if message.Protobuf().Name == word {
 			line := proto_file.ReadLine(message.Protobuf().Position.Line - 1)
 			return &[]defines.LocationLink{{
-				TargetUri: req.TextDocument.Uri,
+				TargetUri: proto_file.URI(),
 				TargetSelectionRange: defines.Range{
 					Start: defines.Position{
 						Line:      uint(message.Protobuf().Position.Line) - 1,
@@ -115,7 +109,25 @@ func jumpInThisFile(ctx context.Context, req *defines.DefinitionParams, word str
 			}}, nil
 		}
 	}
-	return nil, nil
+	// search enum
+	for _, enum := range proto_file.Proto().Enums() {
+		if enum.Protobuf().Name == word {
+			line := proto_file.ReadLine(enum.Protobuf().Position.Line - 1)
+			return &[]defines.LocationLink{{
+				TargetUri: proto_file.URI(),
+				TargetSelectionRange: defines.Range{
+					Start: defines.Position{
+						Line:      uint(enum.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word)),
+					},
+					End: defines.Position{
+						Line:      uint(enum.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word) + len(word)),
+					}},
+			}}, nil
+		}
+	}
+	return nil, fmt.Errorf("not found")
 }
 
 func getWordWithDot(line string, idx int) string {
