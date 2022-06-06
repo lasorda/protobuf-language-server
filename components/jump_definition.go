@@ -127,6 +127,7 @@ func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]
 			}}, nil
 		}
 	}
+	// TODO add nested type search
 	return nil, fmt.Errorf("not found")
 }
 

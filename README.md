@@ -21,3 +21,4 @@ A language server implementation for Google Protocol Buffers
 
 1. DocumentSymbol
 2. Defines
+3. Format
