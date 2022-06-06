@@ -20,5 +20,5 @@ A language server implementation for Google Protocol Buffers
 ## features
 
 1. DocumentSymbol
-2. Defines
-3. Format
+2. jump to defines
+3. format file with clang-format
