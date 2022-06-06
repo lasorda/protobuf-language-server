@@ -26,6 +26,9 @@ type Message interface {
 	GetFieldByLine(line int) (*MessageField, bool)
 	GetOneofFieldByLine(line int) (Oneof, bool)
 	GetMapFieldByLine(line int) (*MapField, bool)
+
+	GetParentMessage() Message
+	SetParentMessage(Message)
 }
 
 type message struct {
@@ -49,8 +52,10 @@ type message struct {
 	lineToField      map[int]*MessageField
 	lineToOneofField map[int]Oneof
 	lineToMapField   map[int]*MapField
+	lineToMessage    map[int]*message
 
-	mu *sync.RWMutex
+	parentMessage Message
+	mu            *sync.RWMutex
 }
 
 var _ Message = (*message)(nil)
@@ -72,8 +77,8 @@ func NewMessage(protoMessage *protobuf.Message) Message {
 		lineToField:      make(map[int]*MessageField),
 		lineToOneofField: make(map[int]Oneof),
 		lineToMapField:   make(map[int]*MapField),
-
-		mu: &sync.RWMutex{},
+		lineToMessage:    make(map[int]*message),
+		mu:               &sync.RWMutex{},
 	}
 
 	for _, e := range protoMessage.Elements {
@@ -90,7 +95,13 @@ func NewMessage(protoMessage *protobuf.Message) Message {
 		case *protobuf.MapField:
 			f := NewMapField(v)
 			m.mapFields = append(m.mapFields, f)
-
+		case *protobuf.Enum:
+			f := NewEnum(v)
+			m.nestedEnums = append(m.nestedEnums, f)
+		case *protobuf.Message:
+			f := NewMessage(v)
+			f.SetParentMessage(m)
+			m.nestedMessages = append(m.nestedMessages, f)
 		default:
 		}
 	}
@@ -110,6 +121,13 @@ func NewMessage(protoMessage *protobuf.Message) Message {
 		m.lineToMapField[f.ProtoMapField.Position.Line] = f
 	}
 
+	for _, f := range m.nestedEnums {
+		m.nestedEnumNameToEnum[f.Protobuf().Name] = f
+	}
+
+	for _, f := range m.nestedMessageNameToMessage {
+		m.nestedMessageNameToMessage[f.Protobuf().Name] = f
+	}
 	return m
 }
 
@@ -228,6 +246,13 @@ func (m *message) GetMapFieldByLine(line int) (f *MapField, ok bool) {
 	f, ok = m.lineToMapField[line]
 	m.mu.RUnlock()
 	return
+}
+
+func (m *message) GetParentMessage() Message {
+	return m.parentMessage
+}
+func (m *message) SetParentMessage(p Message) {
+	m.parentMessage = p
 }
 
 // MessageField is a registry for protobuf message field.

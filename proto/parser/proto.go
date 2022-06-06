@@ -29,6 +29,9 @@ type Proto interface {
 
 	GetMessageFieldByLine(line int) (*MessageField, bool)
 	GetEnumFieldByLine(line int) (*EnumField, bool)
+
+	GetAllParentMessage(line int) []Message
+	GetAllParentEnum(line int) []Enum
 }
 
 type proto struct {
@@ -45,10 +48,11 @@ type proto struct {
 	enumNameToEnum       map[string]Enum
 	serviceNameToService map[string]Service
 
-	lineToPackage map[int]*Package
-	lineToMessage map[int]Message
-	lineToEnum    map[int]Enum
-	lineToService map[int]Service
+	lineToPackage       map[int]*Package
+	lineToMessage       map[int]Message
+	lineToEnum          map[int]Enum
+	lineToService       map[int]Service
+	lineToParentMessage map[int]Message
 
 	mu *sync.RWMutex
 }
@@ -65,10 +69,11 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		enumNameToEnum:       make(map[string]Enum),
 		serviceNameToService: make(map[string]Service),
 
-		lineToPackage: make(map[int]*Package),
-		lineToMessage: make(map[int]Message),
-		lineToEnum:    make(map[int]Enum),
-		lineToService: make(map[int]Service),
+		lineToPackage:       make(map[int]*Package),
+		lineToMessage:       make(map[int]Message),
+		lineToEnum:          make(map[int]Enum),
+		lineToService:       make(map[int]Service),
+		lineToParentMessage: make(map[int]Message),
 
 		mu: &sync.RWMutex{},
 	}
@@ -99,7 +104,16 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		default:
 		}
 	}
+	var mapFiledToMessage func(Message)
+	mapFiledToMessage = func(m Message) {
+		for _, f := range m.Fields() {
+			proto.lineToParentMessage[f.ProtoField.Position.Line] = m
+		}
 
+		for _, m := range m.NestedMessages() {
+			mapFiledToMessage(m)
+		}
+	}
 	for _, p := range proto.packages {
 		proto.packageNameToPackage[p.ProtoPackage.Name] = p
 		proto.lineToPackage[p.ProtoPackage.Position.Line] = p
@@ -108,6 +122,7 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 	for _, m := range proto.messages {
 		proto.messageNameToMessage[m.Protobuf().Name] = m
 		proto.lineToMessage[m.Protobuf().Position.Line] = m
+		mapFiledToMessage(m)
 	}
 
 	for _, e := range proto.enums {
@@ -119,6 +134,7 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		proto.serviceNameToService[s.Protobuf().Name] = s
 		proto.lineToService[s.Protobuf().Position.Line] = s
 	}
+
 	return proto
 }
 
@@ -260,6 +276,34 @@ func (p *proto) GetEnumFieldByLine(line int) (f *EnumField, ok bool) {
 		if ok {
 			return
 		}
+	}
+	return
+}
+
+func (p *proto) GetAllParentMessage(line int) (res []Message) {
+	m, ok := p.lineToParentMessage[line]
+	if !ok {
+		return
+	}
+	if m != nil {
+		for _, m_br := range m.NestedMessages() {
+			res = append(res, m_br)
+		}
+		m = m.GetParentMessage()
+	}
+	return
+}
+
+func (p *proto) GetAllParentEnum(line int) (res []Enum) {
+	m, ok := p.lineToParentMessage[line]
+	if !ok {
+		return
+	}
+	if m != nil {
+		for _, e_br := range m.NestedEnums() {
+			res = append(res, e_br)
+		}
+		m = m.GetParentMessage()
 	}
 	return
 }

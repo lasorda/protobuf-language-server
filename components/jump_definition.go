@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
@@ -31,19 +32,30 @@ func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]d
 	pos := strings.LastIndexAny(package_and_word, ".")
 
 	var package_name, word string
-	if pos == -1 && len(proto_file.Proto().Packages()) > 0 {
-		package_name = proto_file.Proto().Packages()[0].ProtoPackage.Name
+	word_only := true
+	if pos == -1 {
+		if len(proto_file.Proto().Packages()) > 0 {
+			package_name = proto_file.Proto().Packages()[0].ProtoPackage.Name
+		}
 		word = package_and_word
 	} else {
 		package_name, word = package_and_word[0:pos], package_and_word[pos+1:]
+		word_only = false
 	}
 
-	if len(proto_file.Proto().Packages()) > 0 && proto_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
-		res, err := searchType(proto_file, word, true)
+	if word_only {
+		res, err := searchTypeNested(proto_file, word, int(req.Position.Line+1))
 		if err == nil && len(*res) > 0 {
 			return res, nil
 		}
 	}
+	if len(proto_file.Proto().Packages()) > 0 && proto_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
+		res, err := searchType(proto_file, word)
+		if err == nil && len(*res) > 0 {
+			return res, nil
+		}
+	}
+
 	for _, im := range proto_file.Proto().Imports() {
 		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
 		if err != nil {
@@ -57,7 +69,7 @@ func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]d
 
 		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
 			// same packages_name in different file
-			res, err := searchType(import_file, word, true)
+			res, err := searchType(import_file, word)
 			if err == nil && len(*res) > 0 {
 				return res, nil
 			}
@@ -82,8 +94,49 @@ func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str str
 	}}, nil
 }
 
-func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]defines.LocationLink, err error) {
+func searchTypeNested(proto_file view.ProtoFile, word string, line int) (result *[]defines.LocationLink, err error) {
+	logs.Printf("GetAllParentMessage %v", proto_file.Proto().GetAllParentMessage(line))
+	// search message
+	for _, message := range proto_file.Proto().GetAllParentMessage(line) {
+		if message.Protobuf().Name == word {
+			line := proto_file.ReadLine(message.Protobuf().Position.Line - 1)
+			return &[]defines.LocationLink{{
+				TargetUri: proto_file.URI(),
+				TargetSelectionRange: defines.Range{
+					Start: defines.Position{
+						Line:      uint(message.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word)),
+					},
+					End: defines.Position{
+						Line:      uint(message.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word) + len(word)),
+					}},
+			}}, nil
+		}
+	}
+	logs.Printf("GetAllParentEnum %v", proto_file.Proto().GetAllParentEnum(line))
+	// search enum
+	for _, enum := range proto_file.Proto().GetAllParentEnum(line) {
+		if enum.Protobuf().Name == word {
+			line := proto_file.ReadLine(enum.Protobuf().Position.Line - 1)
+			return &[]defines.LocationLink{{
+				TargetUri: proto_file.URI(),
+				TargetSelectionRange: defines.Range{
+					Start: defines.Position{
+						Line:      uint(enum.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word)),
+					},
+					End: defines.Position{
+						Line:      uint(enum.Protobuf().Position.Line) - 1,
+						Character: uint(strings.Index(line, word) + len(word)),
+					}},
+			}}, nil
+		}
+	}
+	return nil, fmt.Errorf("%v not found", word)
+}
 
+func searchType(proto_file view.ProtoFile, word string) (result *[]defines.LocationLink, err error) {
 	// search message
 	for _, message := range proto_file.Proto().Messages() {
 		if message.Protobuf().Name == word {
@@ -120,7 +173,6 @@ func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]
 			}}, nil
 		}
 	}
-	// TODO add nested type search
 	return nil, fmt.Errorf("%v not found", word)
 }
 
