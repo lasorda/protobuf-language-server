@@ -154,8 +154,6 @@ func (v *view) parseImportProto(document_uri defines.DocumentUri) {
 			}
 			v.openFile(import_uri, data)
 		}
-		proto_file, err = v.GetFile(import_uri)
-		proto_file.Proto().PutImportProto(import_uri, proto_file.Proto())
 	}
 
 }

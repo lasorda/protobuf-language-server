@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
@@ -30,9 +29,6 @@ type Proto interface {
 
 	GetMessageFieldByLine(line int) (*MessageField, bool)
 	GetEnumFieldByLine(line int) (*EnumField, bool)
-
-	GetImportProto(document_uri defines.DocumentUri) (*Proto, error)
-	PutImportProto(import_uri defines.DocumentUri, import_proto Proto)
 }
 
 type proto struct {
@@ -48,7 +44,6 @@ type proto struct {
 	messageNameToMessage map[string]Message
 	enumNameToEnum       map[string]Enum
 	serviceNameToService map[string]Service
-	importProto          map[defines.DocumentUri]*Proto
 
 	lineToPackage map[int]*Package
 	lineToMessage map[int]Message
@@ -69,7 +64,6 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		messageNameToMessage: make(map[string]Message),
 		enumNameToEnum:       make(map[string]Enum),
 		serviceNameToService: make(map[string]Service),
-		importProto:          make(map[defines.DocumentUri]*Proto),
 
 		lineToPackage: make(map[int]*Package),
 		lineToMessage: make(map[int]Message),
@@ -166,10 +160,6 @@ func (p *proto) Imports() (svcs []*Import) {
 	svcs = p.imports
 	p.mu.RUnlock()
 	return
-}
-
-func (p *proto) PutImportProto(import_uri defines.DocumentUri, import_proto Proto) {
-	p.importProto[import_uri] = &import_proto
 }
 
 // GetPackageByName gets Package by provided name.
@@ -272,13 +262,4 @@ func (p *proto) GetEnumFieldByLine(line int) (f *EnumField, ok bool) {
 		}
 	}
 	return
-}
-
-func (p *proto) GetImportProto(document_uri defines.DocumentUri) (*Proto, error) {
-	import_proto, ok := p.importProto[document_uri]
-
-	if ok {
-		return import_proto, nil
-	}
-	return nil, fmt.Errorf("%v not found", document_uri)
 }

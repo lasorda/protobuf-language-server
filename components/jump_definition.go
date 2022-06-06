@@ -31,7 +31,7 @@ func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]d
 	if !strings.ContainsAny(word, ".") {
 		return jumpInThisFile(ctx, req, word)
 	}
-	return nil, nil
+	return jumpInImport(ctx, req, word)
 }
 
 func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str string) (result *[]defines.LocationLink, err error) {
@@ -47,6 +47,51 @@ func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str str
 	return &[]defines.LocationLink{{
 		TargetUri: import_uri,
 	}}, nil
+}
+
+func jumpInImport(ctx context.Context, req *defines.DefinitionParams, package_and_word string) (result *[]defines.LocationLink, err error) {
+	proto_file, _ := view.ViewManager.GetFile(req.TextDocument.Uri)
+	pos := strings.LastIndexAny(package_and_word, ".")
+
+	if pos == -1 {
+		return nil, nil
+	}
+	packages_name, word := package_and_word[0:pos], package_and_word[pos+1:]
+
+	for _, im := range proto_file.Proto().Imports() {
+		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
+		if err != nil {
+			continue
+		}
+
+		import_file, err := view.ViewManager.GetFile(import_uri)
+		if err != nil {
+			continue
+		}
+
+		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == packages_name {
+			// search message
+			for _, message := range import_file.Proto().Messages() {
+				if message.Protobuf().Name == word {
+					line := import_file.ReadLine(message.Protobuf().Position.Line - 1)
+					return &[]defines.LocationLink{{
+						TargetUri: import_uri,
+						TargetSelectionRange: defines.Range{
+							Start: defines.Position{
+								Line:      uint(message.Protobuf().Position.Line) - 1,
+								Character: uint(strings.Index(line, word)),
+							},
+							End: defines.Position{
+								Line:      uint(message.Protobuf().Position.Line) - 1,
+								Character: uint(strings.Index(line, word) + len(word)),
+							}},
+					}}, nil
+				}
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func jumpInThisFile(ctx context.Context, req *defines.DefinitionParams, word string) (result *[]defines.LocationLink, err error) {
@@ -72,6 +117,7 @@ func jumpInThisFile(ctx context.Context, req *defines.DefinitionParams, word str
 	}
 	return nil, nil
 }
+
 func getWordWithDot(line string, idx int) string {
 	l, r := idx, idx
 	for l >= 0 {
