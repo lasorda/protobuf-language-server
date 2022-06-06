@@ -3,7 +3,6 @@ package components
 import (
 	"context"
 	"fmt"
-	"log"
 	"pls/proto/view"
 	"regexp"
 	"strings"
@@ -27,12 +26,45 @@ func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]d
 		return jumpImport(ctx, req, line_str)
 	}
 
-	// type define in this file
-	word := getWordWithDot(line_str, int(req.Position.Character))
-	if !strings.ContainsAny(word, ".") {
-		return jumpInThisFile(ctx, req, word)
+	// type define
+	package_and_word := getWordWithDot(line_str, int(req.Position.Character))
+	pos := strings.LastIndexAny(package_and_word, ".")
+
+	var package_name, word string
+	if pos == -1 && len(proto_file.Proto().Packages()) > 0 {
+		package_name = proto_file.Proto().Packages()[0].ProtoPackage.Name
+		word = package_and_word
+	} else {
+		package_name, word = package_and_word[0:pos], package_and_word[pos+1:]
 	}
-	return jumpInImport(ctx, req, word)
+
+	if len(proto_file.Proto().Packages()) > 0 && proto_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
+		res, err := searchType(proto_file, word, true)
+		if err == nil && len(*res) > 0 {
+			return res, nil
+		}
+	}
+	for _, im := range proto_file.Proto().Imports() {
+		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
+		if err != nil {
+			continue
+		}
+
+		import_file, err := view.ViewManager.GetFile(import_uri)
+		if err != nil {
+			continue
+		}
+
+		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
+			// same packages_name in different file
+			res, err := searchType(import_file, word, true)
+			if err == nil && len(*res) > 0 {
+				return res, nil
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str string) (result *[]defines.LocationLink, err error) {
@@ -48,45 +80,6 @@ func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str str
 	return &[]defines.LocationLink{{
 		TargetUri: import_uri,
 	}}, nil
-}
-
-func jumpInImport(ctx context.Context, req *defines.DefinitionParams, package_and_word string) (result *[]defines.LocationLink, err error) {
-	proto_file, _ := view.ViewManager.GetFile(req.TextDocument.Uri)
-	pos := strings.LastIndexAny(package_and_word, ".")
-
-	if pos == -1 {
-		log.Printf("jumpInImport find packages_name:%v err", package_and_word)
-		return nil, nil
-	}
-	packages_name, word := package_and_word[0:pos], package_and_word[pos+1:]
-
-	for _, im := range proto_file.Proto().Imports() {
-		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
-		if err != nil {
-			continue
-		}
-
-		import_file, err := view.ViewManager.GetFile(import_uri)
-		if err != nil {
-			continue
-		}
-
-		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == packages_name {
-			// same packages_name in different file
-			res, err := searchType(import_file, word, true)
-			if err == nil && len(*res) > 0 {
-				return res, nil
-			}
-		}
-	}
-
-	return nil, nil
-}
-
-func jumpInThisFile(ctx context.Context, req *defines.DefinitionParams, word string) (result *[]defines.LocationLink, err error) {
-	proto_file, _ := view.ViewManager.GetFile(req.TextDocument.Uri)
-
-	return searchType(proto_file, word, true)
 }
 
 func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]defines.LocationLink, err error) {
@@ -128,24 +121,27 @@ func searchType(proto_file view.ProtoFile, word string, global bool) (result *[]
 		}
 	}
 	// TODO add nested type search
-	return nil, fmt.Errorf("not found")
+	return nil, fmt.Errorf("%v not found", word)
 }
 
 func getWordWithDot(line string, idx int) string {
 	l, r := idx, idx
+
+	isWordChar := func(ch byte) bool {
+		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '.'
+	}
+
 	for l >= 0 {
-		if (line[l] >= 'a' && line[l] <= 'z') || (line[l] >= 'A' && line[l] <= 'Z') || line[l] == '_' || line[l] == '.' {
-			l--
-			continue
+		if !isWordChar(line[l]) {
+			break
 		}
-		break
+		l--
 	}
 	for r < len(line) {
-		if (line[r] >= 'a' && line[r] <= 'z') || (line[r] >= 'A' && line[r] <= 'Z') || line[r] == '_' || line[r] == '.' {
-			r++
-			continue
+		if !isWordChar(line[r]) {
+			break
 		}
-		break
+		r++
 	}
 	return line[l+1 : r]
 }
