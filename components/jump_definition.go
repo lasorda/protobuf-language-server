@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
@@ -95,7 +94,6 @@ func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str str
 }
 
 func searchTypeNested(proto_file view.ProtoFile, word string, line int) (result *[]defines.LocationLink, err error) {
-	logs.Printf("GetAllParentMessage %v", proto_file.Proto().GetAllParentMessage(line))
 	// search message
 	for _, message := range proto_file.Proto().GetAllParentMessage(line) {
 		if message.Protobuf().Name == word {
@@ -114,7 +112,6 @@ func searchTypeNested(proto_file view.ProtoFile, word string, line int) (result 
 			}}, nil
 		}
 	}
-	logs.Printf("GetAllParentEnum %v", proto_file.Proto().GetAllParentEnum(line))
 	// search enum
 	for _, enum := range proto_file.Proto().GetAllParentEnum(line) {
 		if enum.Protobuf().Name == word {

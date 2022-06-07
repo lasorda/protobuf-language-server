@@ -3,6 +3,7 @@ package parser
 import (
 	"sync"
 
+	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
 )
@@ -285,12 +286,13 @@ func (p *proto) GetAllParentMessage(line int) (res []Message) {
 	if !ok {
 		return
 	}
-	if m != nil {
+	for m != nil {
 		for _, m_br := range m.NestedMessages() {
 			res = append(res, m_br)
 		}
 		m = m.GetParentMessage()
 	}
+	logs.Printf("ret %+v", res)
 	return
 }
 
@@ -299,7 +301,7 @@ func (p *proto) GetAllParentEnum(line int) (res []Enum) {
 	if !ok {
 		return
 	}
-	if m != nil {
+	for m != nil {
 		for _, e_br := range m.NestedEnums() {
 			res = append(res, e_br)
 		}
