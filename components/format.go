@@ -2,17 +2,19 @@ package components
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"math"
 	"os/exec"
+	"path/filepath"
 	"pls/proto/view"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
 func Format(ctx context.Context, req *defines.DocumentFormattingParams) (result *[]defines.TextEdit, err error) {
-	format := exec.Command("clang-format")
+	format := exec.Command("clang-format", fmt.Sprintf("--assume-filename=%v", filepath.Base(string(req.TextDocument.Uri))))
 	in, err := format.StdinPipe()
 	if err != nil {
 		return nil, err
