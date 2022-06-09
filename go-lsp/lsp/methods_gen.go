@@ -186,7 +186,7 @@ func (m *Methods) didChangeConfigurationMethodInfo() *jsonrpc.MethodInfo {
 		return nil
 	}
 	return &jsonrpc.MethodInfo{
-		Name: "didChangeConfiguration",
+		Name: "workspace/didChangeConfiguration",
 		NewRequest: func() interface{} {
 			return &defines.DidChangeConfigurationParams{}
 		},
