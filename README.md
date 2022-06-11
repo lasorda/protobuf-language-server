@@ -21,6 +21,6 @@ if you use vscode, see `vscode-extension/README.md`
 
 ## features
 
-1. DocumentSymbol
+1. documentSymbol
 2. jump to defines
 3. format file with clang-format
