@@ -14,7 +14,7 @@ import (
 )
 
 func Format(ctx context.Context, req *defines.DocumentFormattingParams) (result *[]defines.TextEdit, err error) {
-	if !view.IsPbHeader(req.TextDocument.Uri) {
+	if !view.IsProtoFile(req.TextDocument.Uri) {
 		return nil, nil
 	}
 	format := exec.Command("clang-format", fmt.Sprintf("--assume-filename=%v", filepath.Base(string(req.TextDocument.Uri))))
