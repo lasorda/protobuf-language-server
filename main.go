@@ -52,5 +52,6 @@ func main() {
 	server.OnDocumentSymbolWithSliceDocumentSymbol(components.ProvideDocumentSymbol)
 	server.OnDefinition(components.JumpDefine)
 	server.OnDocumentFormatting(components.Format)
+	server.OnCompletion(components.Completion)
 	server.Run()
 }
