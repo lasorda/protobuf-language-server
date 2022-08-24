@@ -206,6 +206,8 @@ func newView() *view {
 	}
 }
 
+var ViewManager *view
+
 func parseProto(document_uri defines.DocumentUri, data []byte) (proto parser.Proto, err error) {
 	buf := bytes.NewBuffer(data)
 	proto, err = parser.ParseProto(document_uri, buf)
@@ -297,11 +299,19 @@ func didSave(_ context.Context, params *defines.DidSaveTextDocumentParams) error
 	return nil
 }
 
-var ViewManager *view
+func onInitialized(ctx context.Context, req *defines.InitializeParams) (err error) {
+	return nil
+}
+
+func onDidChangeConfiguration(ctx context.Context, req *defines.DidChangeConfigurationParams) (err error) {
+	return nil
+}
 
 func Init(server *lsp.Server) {
 	ViewManager = newView()
 
+	server.OnInitialized(onInitialized)
+	server.OnDidChangeConfiguration(onDidChangeConfiguration)
 	server.OnDidOpenTextDocument(didOpen)
 	server.OnDidChangeTextDocument(didChange)
 	server.OnDidCloseTextDocument(didClose)
