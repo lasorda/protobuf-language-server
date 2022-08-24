@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"unicode/utf8"
 
@@ -30,12 +31,23 @@ type view struct {
 
 	openFiles  map[defines.DocumentUri]bool
 	openFileMu *sync.RWMutex
+
+	pbHeaders map[defines.DocumentUri][]string
 }
 
 func (v *view) GetFile(document_uri defines.DocumentUri) (ProtoFile, error) {
 	if f, ok := v.filesByURI[document_uri]; ok {
 		return f, nil
 	}
+	// no file load try again
+	err := v.loadProtoFile(document_uri)
+	if err != nil {
+		return nil, err
+	}
+	if f, ok := v.filesByURI[document_uri]; ok {
+		return f, nil
+	}
+
 	return nil, fmt.Errorf("%v not found", document_uri)
 }
 
@@ -84,6 +96,18 @@ func (v *view) didOpen(document_uri defines.DocumentUri, text []byte) {
 	v.parseImportProto(document_uri)
 }
 
+func (v *view) didOpenPbHeader(document_uri defines.DocumentUri, text string) {
+	v.pbHeaders[document_uri] = strings.Split(text, "\n")
+}
+
+func (v *view) GetPbHeaderLine(document_uri defines.DocumentUri, line int) string {
+	lines, ok := v.pbHeaders[document_uri]
+	if !ok || len(lines) <= line {
+		return ""
+	}
+
+	return lines[line]
+}
 func (v *view) didSave(document_uri defines.DocumentUri) {
 	v.fileMu.Lock()
 	if file, ok := v.filesByURI[document_uri]; ok {
@@ -143,20 +167,24 @@ func (v *view) parseImportProto(document_uri defines.DocumentUri) {
 		}
 		proto_file, err := v.GetFile(import_uri)
 		if proto_file == nil {
-			data, err := os.ReadFile(uri.URI(import_uri).Filename())
-
-			if err != nil {
-				logs.Printf("read file err:%v", err)
-				continue
-			}
-			if !utf8.Valid(data) {
-				data = toUtf8(data)
-			}
-			v.openFile(import_uri, data)
+			v.loadProtoFile(import_uri)
 		}
 	}
-
 }
+
+func (v *view) loadProtoFile(document_uri defines.DocumentUri) error {
+	data, err := os.ReadFile(uri.URI(document_uri).Filename())
+
+	if err != nil {
+		return fmt.Errorf("read file err:%v", err)
+	}
+	if !utf8.Valid(data) {
+		data = toUtf8(data)
+	}
+	v.openFile(document_uri, data)
+	return nil
+}
+
 func (v *view) mapFile(document_uri defines.DocumentUri, f ProtoFile) {
 	v.fileMu.Lock()
 
@@ -174,6 +202,7 @@ func newView() *view {
 		fileMu:      &sync.RWMutex{},
 		openFiles:   make(map[defines.DocumentUri]bool),
 		openFileMu:  &sync.RWMutex{},
+		pbHeaders:   make(map[defines.DocumentUri][]string),
 	}
 }
 
@@ -214,15 +243,26 @@ func hashContent(content []byte) string {
 }
 
 func didOpen(ctx context.Context, params *defines.DidOpenTextDocumentParams) error {
+	if IsProtoFile(params.TextDocument.Uri) {
+		document_uri := params.TextDocument.Uri
+		text := []byte(params.TextDocument.Text)
 
-	document_uri := params.TextDocument.Uri
-	text := []byte(params.TextDocument.Text)
+		ViewManager.didOpen(document_uri, text)
 
-	ViewManager.didOpen(document_uri, text)
+		return nil
+	}
+
+	if IsPbHeader(params.TextDocument.Uri) {
+		ViewManager.didOpenPbHeader(params.TextDocument.Uri, params.TextDocument.Text)
+	}
 	return nil
 }
 
 func didChange(ctx context.Context, params *defines.DidChangeTextDocumentParams) error {
+	if !IsProtoFile(params.TextDocument.Uri) {
+		return nil
+	}
+
 	if len(params.ContentChanges) < 1 {
 		return jsonrpc2.NewError(jsonrpc2.InternalError, "no content changes provided")
 	}
@@ -235,6 +275,10 @@ func didChange(ctx context.Context, params *defines.DidChangeTextDocumentParams)
 }
 
 func didClose(ctx context.Context, params *defines.DidCloseTextDocumentParams) error {
+	if !IsProtoFile(params.TextDocument.Uri) {
+		return nil
+	}
+
 	document_uri := params.TextDocument.Uri
 
 	ViewManager.didClose(document_uri)
@@ -244,6 +288,10 @@ func didClose(ctx context.Context, params *defines.DidCloseTextDocumentParams) e
 }
 
 func didSave(_ context.Context, params *defines.DidSaveTextDocumentParams) error {
+	if !IsProtoFile(params.TextDocument.Uri) {
+		return nil
+	}
+
 	document_uri := defines.DocumentUri(params.TextDocument.Uri)
 
 	ViewManager.didSave(document_uri)
@@ -268,4 +316,12 @@ func Init(server *lsp.Server) {
 	server.OnDidChangeTextDocument(didChange)
 	server.OnDidCloseTextDocument(didClose)
 	server.OnDidSaveTextDocument(didSave)
+}
+
+func IsProtoFile(document_uri defines.DocumentUri) bool {
+	return strings.HasSuffix(string(document_uri), ".proto")
+}
+
+func IsPbHeader(document_uri defines.DocumentUri) bool {
+	return strings.HasSuffix(string(document_uri), ".pb.h")
 }

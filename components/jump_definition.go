@@ -7,10 +7,35 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/TobiasYin/go-lsp/logs"
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
 func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]defines.LocationLink, err error) {
+	if view.IsProtoFile(req.TextDocument.Uri) {
+		return JumpProtoDefine(ctx, req)
+	}
+
+	if view.IsPbHeader(req.TextDocument.Uri) {
+		return JumpPbHeaderDefine(ctx, req)
+	}
+	return nil, nil
+}
+
+func JumpPbHeaderDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]defines.LocationLink, err error) {
+	proto_uri := strings.ReplaceAll(string(req.TextDocument.Uri), "bazel-out/local_linux-fastbuild/genfiles/", "")
+	proto_uri = strings.ReplaceAll(proto_uri, ".pb.h", ".proto")
+	proto_file, err := view.ViewManager.GetFile(defines.DocumentUri(proto_uri))
+	if err != nil {
+		return nil, err
+	}
+	line := view.ViewManager.GetPbHeaderLine(req.TextDocument.Uri, int(req.Position.Line))
+	word := getWord(line, int(req.Position.Character), false)
+	logs.Printf("line %v, word %v", line, word)
+	return searchType(proto_file, word)
+}
+
+func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]defines.LocationLink, err error) {
 	proto_file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
 
 	if err != nil {
@@ -27,7 +52,7 @@ func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]d
 	}
 
 	// type define
-	package_and_word := getWordWithDot(line_str, int(req.Position.Character))
+	package_and_word := getWord(line_str, int(req.Position.Character), true)
 	pos := strings.LastIndexAny(package_and_word, ".")
 
 	var package_name, word string
@@ -173,11 +198,11 @@ func searchType(proto_file view.ProtoFile, word string) (result *[]defines.Locat
 	return nil, fmt.Errorf("%v not found", word)
 }
 
-func getWordWithDot(line string, idx int) string {
+func getWord(line string, idx int, includeDot bool) string {
 	l, r := idx, idx
 
 	isWordChar := func(ch byte) bool {
-		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '.'
+		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || (ch == '.' && includeDot)
 	}
 
 	for l >= 0 {

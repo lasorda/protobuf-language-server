@@ -12,7 +12,7 @@ A language server implementation for Google Protocol Buffers
     "languageserver": {
         "proto" :{
             "command": "pls",
-            "filetypes": ["proto"]
+            "filetypes": ["proto", "cpp"]
         }
     }
 ```
@@ -24,3 +24,4 @@ if you use vscode, see `vscode-extension/README.md`
 1. documentSymbol
 2. jump to defines
 3. format file with clang-format
+4. jump from protobuf's cpp header to proto define (only global message and enum)

@@ -9,6 +9,9 @@ import (
 )
 
 func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParams) (result *[]defines.DocumentSymbol, err error) {
+	if !view.IsProtoFile(req.TextDocument.Uri) {
+		return nil, nil
+	}
 	file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
 	res := []defines.DocumentSymbol{}
 	if err != nil {
