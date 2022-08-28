@@ -17,8 +17,6 @@ A language server implementation for Google Protocol Buffers
     }
 ```
 
-if you use vscode, see `vscode-extension/README.md`
-
 ## features
 
 1. documentSymbol
