@@ -85,5 +85,8 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 		service_sym.Children = &child
 		res = append(res, service_sym)
 	}
+	for i := 0; i < len(res); i++ {
+		res[i].Range = res[i].SelectionRange
+	}
 	return &res, nil
 }
