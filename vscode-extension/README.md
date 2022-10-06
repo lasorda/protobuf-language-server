@@ -1,10 +1,24 @@
-mv target `pls` to directory `bin`
+# protobuf-language-server
 
-build vscode extension
+A language server implementation for Google Protocol Buffers
+
+## how to use
+
+1. Get code from [https://github.com/lasorda/protobuf-language-server](https://github.com/lasorda/protobuf-language-server)
+2. Build the target `pls`, add `pls` to `PATH`
+
+## features
+
+1. documentSymbol
+2. jump to defines
+3. format file with clang-format
+4. jump from protobuf's cpp header to proto define (only global message and enum)
+
+## build vscode extension(optional for deveplop)
+
 ```shell
 npm install -g vsce
 npm install -g yarn
 npm install
-# with Y
 vsce package --no-yarn
 ```
