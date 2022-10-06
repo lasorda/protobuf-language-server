@@ -12,7 +12,6 @@ A language server implementation for Google Protocol Buffers
 1. documentSymbol
 2. jump to defines
 3. format file with clang-format
-4. jump from protobuf's cpp header to proto define (only global message and enum)
 
 ## build vscode extension(optional for deveplop)
 
