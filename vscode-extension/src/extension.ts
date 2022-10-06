@@ -1,7 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { ExtensionContext } from 'vscode';
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -13,9 +12,10 @@ import {
 // your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
     // The server is implemented in node
-    const serverModule = context.asAbsolutePath(
-        path.join('bin', 'pls')
-    );
+    // const serverModule = context.asAbsolutePath(
+    //     path.join('bin', 'pls')
+    // );
+    const serverModule = 'pls';
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
