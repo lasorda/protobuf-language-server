@@ -199,23 +199,33 @@ func searchType(proto_file view.ProtoFile, word string) (result *[]defines.Locat
 }
 
 func getWord(line string, idx int, includeDot bool) string {
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(line) {
+		idx = len(line) - 1
+	}
 	l, r := idx, idx
 
 	isWordChar := func(ch byte) bool {
 		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || (ch == '.' && includeDot)
 	}
-
-	for l >= 0 {
-		if !isWordChar(line[l]) {
+	ll := l
+	for ll >= 0 {
+		if !isWordChar(line[ll]) {
 			break
 		}
-		l--
+		ll--
 	}
+	if ll != l {
+		ll = ll + 1
+	}
+	l = ll
 	for r < len(line) {
 		if !isWordChar(line[r]) {
 			break
 		}
 		r++
 	}
-	return line[l+1 : r]
+	return line[l:r]
 }

@@ -12,6 +12,7 @@ A language server implementation for Google Protocol Buffers
 1. documentSymbol
 2. jump to defines
 3. format file with clang-format
+4. code completion
 
 ## build vscode extension(optional for deveplop)
 

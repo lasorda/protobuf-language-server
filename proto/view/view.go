@@ -69,7 +69,9 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 			hash:         hashContent(data),
 		},
 	}
-
+	pre := v.filesByURI[document_uri]
+	pf.proto = pre.Proto()
+	v.filesByURI[document_uri] = pf
 	// TODO:
 	//  Control times of parse of proto.
 	//  Currently it parses every time of file change.
@@ -79,7 +81,6 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 		return
 	}
 	pf.proto = proto
-	v.filesByURI[document_uri] = pf
 }
 
 func (v *view) shutdown(ctx context.Context) error {

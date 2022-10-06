@@ -35,6 +35,9 @@ func init() {
 		return
 	}
 	p := *logPath
+	if _, err := os.Stat(p); err == nil {
+		os.Rename(p, p+".bak")
+	}
 	f, err := os.Create(p)
 	if err == nil {
 		logger = log.New(f, "", 0)
