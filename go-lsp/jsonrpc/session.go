@@ -61,6 +61,7 @@ func (s *Session) handle() {
 		}
 		return
 	}
+	req.Jsonrpc = "2.0"
 	logs.Printf("Request: [%v] [%s], content: [%v]\n", req.ID, req.Method, string(req.Params))
 	err = s.handlerRequest(req)
 	if err != nil {
@@ -268,6 +269,7 @@ func (s *Session) mustWrite(data []byte) error {
 }
 func (s *Session) handlerResponse(id interface{}, result interface{}, err error) error {
 	resp := ResponseMessage{ID: id}
+	resp.Jsonrpc = "2.0"
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			return err

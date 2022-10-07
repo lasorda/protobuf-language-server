@@ -24,9 +24,9 @@ type NotificationMessage struct {
 
 type ResponseMessage struct {
 	BaseMessage
-	ID     interface{}     `json:"id"` // may be int or string
-	Result interface{}    `json:"result"`
-	Error  *ResponseError `json:"error"`
+	ID     interface{}    `json:"id"` // may be int or string
+	Result interface{}    `json:"result,omitempty"`
+	Error  *ResponseError `json:"error,omitempty"`
 }
 
 type ResponseError struct {
