@@ -55,11 +55,16 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 	package_and_word := getWord(line_str, int(req.Position.Character), true)
 	pos := strings.LastIndexAny(package_and_word, ".")
 
+	my_package := ""
+	if len(proto_file.Proto().Packages()) > 0 {
+		my_package = proto_file.Proto().Packages()[0].ProtoPackage.Name
+	}
+
 	var package_name, word string
 	word_only := true
 	if pos == -1 {
 		if len(proto_file.Proto().Packages()) > 0 {
-			package_name = proto_file.Proto().Packages()[0].ProtoPackage.Name
+			package_name = my_package
 		}
 		word = package_and_word
 	} else {
@@ -73,7 +78,7 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 			return res, nil
 		}
 	}
-	if len(proto_file.Proto().Packages()) > 0 && proto_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
+	if len(proto_file.Proto().Packages()) > 0 && my_package == package_name {
 		res, err := searchType(proto_file, word)
 		if err == nil && len(*res) > 0 {
 			return res, nil
@@ -91,7 +96,12 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 			continue
 		}
 
-		if len(import_file.Proto().Packages()) > 0 && import_file.Proto().Packages()[0].ProtoPackage.Name == package_name {
+		packages := import_file.Proto().Packages()
+		if len(packages) == 0 {
+			continue
+		}
+
+		if qualifierReferencesPackage(package_name, packages[0].ProtoPackage.Name, my_package) {
 			// same packages_name in different file
 			res, err := searchType(import_file, word)
 			if err == nil && len(*res) > 0 {
@@ -101,6 +111,23 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 	}
 
 	return nil, nil
+}
+
+func qualifierReferencesPackage(query_pkg string, candidate_pkg string, current_pkg string) bool {
+	if query_pkg == candidate_pkg { // fully qualified name
+		return true
+	}
+
+	// If the current package and the candidate package are within the
+	// same package, then the query need not include this package prefix.
+	// Example:
+	//   query_pkg = "some.dependency"
+	//   candidate_pkg = "common.some.dependency"
+	//   current_pkg = "common.user"
+
+	prefix := strings.TrimSuffix(candidate_pkg, "."+query_pkg)
+
+	return current_pkg == prefix || strings.HasPrefix(current_pkg, prefix+".")
 }
 
 func jumpImport(ctx context.Context, req *defines.DefinitionParams, line_str string) (result *[]defines.LocationLink, err error) {
