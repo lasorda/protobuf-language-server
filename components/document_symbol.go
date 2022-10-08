@@ -26,6 +26,10 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 				Start: defines.Position{Line: uint(pack.ProtoPackage.Position.Line - 1)},
 				End:   defines.Position{Line: uint(pack.ProtoPackage.Position.Line - 1)},
 			},
+			Range: defines.Range{
+				Start: defines.Position{Line: uint(pack.ProtoPackage.Position.Line - 1)},
+				End:   defines.Position{Line: uint(pack.ProtoPackage.Position.Line - 1)},
+			},
 		})
 	}
 	for _, imp := range file.Proto().Imports() {
@@ -33,6 +37,10 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 			Name: imp.ProtoImport.Filename,
 			Kind: defines.SymbolKindFile,
 			SelectionRange: defines.Range{
+				Start: defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
+				End:   defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
+			},
+			Range: defines.Range{
 				Start: defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
 				End:   defines.Position{Line: uint(imp.ProtoImport.Position.Line - 1)},
 			},
@@ -47,6 +55,10 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 				Start: defines.Position{Line: uint(enums.Protobuf().Position.Line - 1)},
 				End:   defines.Position{Line: uint(enums.Protobuf().Position.Line - 1)},
 			},
+			Range: defines.Range{
+				Start: defines.Position{Line: uint(enums.Protobuf().Position.Line - 1)},
+				End:   defines.Position{Line: uint(enums.Protobuf().Position.Line - 1)},
+			},
 		})
 	}
 	for _, message := range file.Proto().Messages() {
@@ -55,6 +67,10 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 			Name: message_proto.Name,
 			Kind: defines.SymbolKindClass,
 			SelectionRange: defines.Range{
+				Start: defines.Position{Line: uint(message_proto.Position.Line - 1)},
+				End:   defines.Position{Line: uint(message_proto.Position.Line - 1)},
+			},
+			Range: defines.Range{
 				Start: defines.Position{Line: uint(message_proto.Position.Line - 1)},
 				End:   defines.Position{Line: uint(message_proto.Position.Line - 1)},
 			},
@@ -68,6 +84,11 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 				Start: defines.Position{Line: uint(service.Protobuf().Position.Line - 1)},
 				End:   defines.Position{Line: uint(service.Protobuf().Position.Line - 1)},
 			},
+			Range: defines.Range{
+				Start: defines.Position{Line: uint(service.Protobuf().Position.Line - 1)},
+				End:   defines.Position{Line: uint(service.Protobuf().Position.Line - 1)},
+			},
+
 			Children: &[]defines.DocumentSymbol{},
 		}
 		child := []defines.DocumentSymbol{}
@@ -79,14 +100,19 @@ func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParam
 					Start: defines.Position{Line: uint(rpc.ProtoRPC.Position.Line - 1)},
 					End:   defines.Position{Line: uint(rpc.ProtoRPC.Position.Line - 1)},
 				},
+				Range: defines.Range{
+					Start: defines.Position{Line: uint(rpc.ProtoRPC.Position.Line - 1)},
+					End:   defines.Position{Line: uint(rpc.ProtoRPC.Position.Line - 1)},
+				},
 			}
 			child = append(child, rpc)
 		}
 		service_sym.Children = &child
 		res = append(res, service_sym)
 	}
-	for i := 0; i < len(res); i++ {
-		res[i].Range = res[i].SelectionRange
-	}
+	// for i := 0; i < len(res); i++ {
+	//     res[i].Range = res[i].SelectionRange
+	// }
+	// logs.Printf("dddddddd %+v", res)
 	return &res, nil
 }
