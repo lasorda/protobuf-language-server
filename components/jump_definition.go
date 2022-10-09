@@ -63,9 +63,7 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 	var package_name, word string
 	word_only := true
 	if pos == -1 {
-		if len(proto_file.Proto().Packages()) > 0 {
-			package_name = my_package
-		}
+		package_name = my_package
 		word = package_and_word
 	} else {
 		package_name, word = package_and_word[0:pos], package_and_word[pos+1:]
@@ -78,7 +76,7 @@ func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result
 			return res, nil
 		}
 	}
-	if len(proto_file.Proto().Packages()) > 0 && my_package == package_name {
+	if my_package == package_name {
 		res, err := searchType(proto_file, word)
 		if err == nil && len(*res) > 0 {
 			return res, nil
