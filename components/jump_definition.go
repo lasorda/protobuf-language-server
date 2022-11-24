@@ -224,6 +224,9 @@ func searchType(proto_file view.ProtoFile, word string) (result *[]defines.Locat
 }
 
 func getWord(line string, idx int, includeDot bool) string {
+	if len(line) == 0 {
+		return ""
+	}
 	if idx < 0 {
 		idx = 0
 	}
