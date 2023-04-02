@@ -14,3 +14,5 @@ require (
 )
 
 replace github.com/TobiasYin/go-lsp v0.0.0-20220223105953-c4c503a4442e => ./go-lsp
+
+replace github.com/emicklei/proto v1.10.0 => github.com/lasorda/proto v0.0.0-20230402034756-d2adeb800831
