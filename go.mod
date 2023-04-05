@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/TobiasYin/go-lsp v0.0.0-20220223105953-c4c503a4442e
-	github.com/emicklei/proto v1.10.0
+	github.com/emicklei/proto v1.11.2-0.20230405093244-ad7e79baafcc
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	go.lsp.dev/jsonrpc2 v0.10.0
@@ -14,5 +14,3 @@ require (
 )
 
 replace github.com/TobiasYin/go-lsp v0.0.0-20220223105953-c4c503a4442e => ./go-lsp
-
-replace github.com/emicklei/proto v1.10.0 => github.com/lasorda/proto v0.0.0-20230402034756-d2adeb800831
