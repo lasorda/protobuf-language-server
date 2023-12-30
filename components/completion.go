@@ -12,6 +12,9 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (result *[]d
 		return nil, nil
 	}
 	proto_file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
+	if proto_file.Proto() == nil {
+		return nil, nil
+	}
 	line_str := proto_file.ReadLine(int(req.Position.Line))
 	word := getWord(line_str, int(req.Position.Character-1), false)
 	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {

@@ -56,7 +56,6 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 
 	v.fileMu.Lock()
 	defer v.fileMu.Unlock()
-
 	if data == nil {
 		delete(v.filesByURI, document_uri)
 		return
@@ -69,8 +68,9 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 			hash:         hashContent(data),
 		},
 	}
-	pre := v.filesByURI[document_uri]
-	pf.proto = pre.Proto()
+	if pre, ok := v.filesByURI[document_uri]; ok {
+		pf.proto = pre.Proto()
+	}
 	v.filesByURI[document_uri] = pf
 	// TODO:
 	//  Control times of parse of proto.
