@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -33,6 +35,7 @@ type view struct {
 	openFileMu *sync.RWMutex
 
 	pbHeaders map[defines.DocumentUri][]string
+	Server    *lsp.Server
 }
 
 func (v *view) GetFile(document_uri defines.DocumentUri) (ProtoFile, error) {
@@ -49,6 +52,11 @@ func (v *view) GetFile(document_uri defines.DocumentUri) (ProtoFile, error) {
 	}
 
 	return nil, fmt.Errorf("%v not found", document_uri)
+}
+
+type Diagnositcs struct {
+	Method string                           `json:"method"`
+	Params defines.PublishDiagnosticsParams `json:"params"`
 }
 
 // setContent sets the file contents for a file.
@@ -77,6 +85,7 @@ func (v *view) setContent(ctx context.Context, document_uri defines.DocumentUri,
 	//  Currently it parses every time of file change.
 	proto, err := parseProto(document_uri, data)
 
+	defer v.sendDiagnose(document_uri, err)
 	if err != nil {
 		return
 	}
@@ -134,6 +143,58 @@ func (v *view) isOpen(document_uri defines.DocumentUri) bool {
 	return open
 }
 
+func (v *view) sendDiagnose(document_uri defines.DocumentUri, err error) {
+	res := Diagnositcs{
+		Method: "textDocument/publishDiagnostics",
+		Params: defines.PublishDiagnosticsParams{
+			Uri:         document_uri,
+			Diagnostics: []defines.Diagnostic{},
+		},
+	}
+	defer func() {
+		ViewManager.Server.SendMsg(res)
+	}()
+	if err == nil {
+		return
+	}
+	input := err.Error()
+	re := regexp.MustCompile(`<input>:(\d+):(\d+)`)
+	matches := re.FindStringSubmatch(input)
+
+	line, row := 0, 0
+	if len(matches) == 3 {
+		line, err = strconv.Atoi(matches[1])
+		if err != nil {
+			logs.Printf("Error:%v\n", err)
+			return
+		}
+		row, err = strconv.Atoi(matches[2])
+		if err != nil {
+			logs.Printf("Error:%v\n", err)
+			return
+		}
+	}
+	if line == 0 || row == 0 {
+		return
+	}
+	logs.Println(row)
+	severity := defines.DiagnosticSeverityError
+	res.Params.Diagnostics = append(res.Params.Diagnostics, defines.Diagnostic{
+		Message:  input,
+		Severity: &severity,
+		Range: defines.Range{
+			Start: defines.Position{
+				Line:      uint(line - 1),
+				Character: uint(row - 1),
+			},
+			End: defines.Position{
+				Line:      uint(line - 1),
+				Character: uint(row),
+			},
+		},
+	})
+}
+
 func (v *view) openFile(document_uri defines.DocumentUri, data []byte) {
 	v.fileMu.Lock()
 	defer v.fileMu.Unlock()
@@ -147,6 +208,7 @@ func (v *view) openFile(document_uri defines.DocumentUri, data []byte) {
 	}
 
 	proto, err := parseProto(document_uri, data)
+	defer v.sendDiagnose(document_uri, err)
 	if err != nil {
 		return
 	}
@@ -249,7 +311,6 @@ func didOpen(ctx context.Context, params *defines.DidOpenTextDocumentParams) err
 		text := []byte(params.TextDocument.Text)
 
 		ViewManager.didOpen(document_uri, text)
-
 		return nil
 	}
 
@@ -309,7 +370,9 @@ func onDidChangeConfiguration(ctx context.Context, req *defines.DidChangeConfigu
 }
 
 func Init(server *lsp.Server) {
+
 	ViewManager = newView()
+	ViewManager.Server = server
 
 	server.OnInitialized(onInitialized)
 	server.OnDidChangeConfiguration(onDidChangeConfiguration)

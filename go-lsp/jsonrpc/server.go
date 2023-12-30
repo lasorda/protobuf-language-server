@@ -53,3 +53,13 @@ func (s *Server) newSession(conn ReaderWriter) *Session {
 	s.session[id] = session
 	return session
 }
+
+func (s *Server) SendMsg(resp interface{}) error {
+	for _, session := range s.session {
+		if session != nil {
+			session.SendMsg(resp)
+			break
+		}
+	}
+	return nil
+}

@@ -80,3 +80,7 @@ func isNil(i interface{}) bool {
 	}
 	return false
 }
+
+func (s *Server) SendMsg(resp interface{}) error {
+	return s.rpcServer.SendMsg(resp)
+}

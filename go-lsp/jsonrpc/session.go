@@ -236,6 +236,26 @@ func (s *Session) handlerRequest(req RequestMessage) error {
 	return nil
 }
 
+func (s *Session) SendMsg(resp interface{}) error {
+	s.writeLock.Lock()
+	defer s.writeLock.Unlock()
+	res, err := jsoniter.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	logs.Printf("SendMsg: [%v]\n", string(res))
+	totalLen := len(res)
+	err = s.mustWrite([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", totalLen)))
+	if err != nil {
+		return err
+	}
+	err = s.mustWrite(res)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Session) write(resp ResponseMessage) error {
 	s.writeLock.Lock()
 	defer s.writeLock.Unlock()
