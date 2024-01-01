@@ -152,9 +152,7 @@ func (v *view) sendDiagnose(document_uri defines.DocumentUri, err error) {
 		},
 	}
 	defer func() {
-		if len(res.Params.Diagnostics) > 0 {
-			_ = ViewManager.Server.SendMsg(res)
-		}
+		ViewManager.Server.SendMsg(res)
 	}()
 	if err == nil {
 		return
