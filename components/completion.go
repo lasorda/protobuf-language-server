@@ -7,12 +7,30 @@ import (
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
-func Completion(ctx context.Context, req *defines.CompletionParams) (result *[]defines.CompletionItem, err error) {
+var protoKeywordCompletionItems []defines.CompletionItem
+
+func init() {
+	kindKeyword := defines.CompletionItemKindKeyword
+	for _, keyword := range []string{"string", "bytes", "double", "float", "int32", "int64",
+		"uint32", "uint64", "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64", "bool",
+		"message", "enum", "service", "rpc", "optional", "repeated", "required",
+		"option", "default", "syntax", "package", "import", "extend", "oneof", "map", "reserved",
+	} {
+		insertText := keyword
+		protoKeywordCompletionItems = append(protoKeywordCompletionItems, defines.CompletionItem{
+			Kind:       &kindKeyword,
+			Label:      keyword,
+			InsertText: &insertText,
+		})
+	}
+}
+
+func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.CompletionItem, error) {
 	if !view.IsProtoFile(req.TextDocument.Uri) {
 		return nil, nil
 	}
 	proto_file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
-	if proto_file.Proto() == nil {
+	if err != nil || proto_file.Proto() == nil {
 		return nil, nil
 	}
 	line_str := proto_file.ReadLine(int(req.Position.Line))
@@ -64,7 +82,7 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (result *[]d
 
 func CompletionInThisFile(file view.ProtoFile) (result *[]defines.CompletionItem, err error) {
 	kindEnum := defines.CompletionItemKindEnum
-	res := []defines.CompletionItem{}
+	res := protoKeywordCompletionItems
 	for _, enums := range file.Proto().Enums() {
 		res = append(res, defines.CompletionItem{
 			Label:      enums.Protobuf().Name,
