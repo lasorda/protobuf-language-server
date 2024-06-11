@@ -32,7 +32,15 @@ func JumpPbHeaderDefine(ctx context.Context, req *defines.DefinitionParams) (res
 	line := view.ViewManager.GetPbHeaderLine(req.TextDocument.Uri, int(req.Position.Line))
 	word := getWord(line, int(req.Position.Character), false)
 	logs.Printf("line %v, word %v", line, word)
-	return searchType(proto_file, word)
+	res, err := searchType(proto_file, word)
+	// better than nothing
+	if (res == nil || len(*res) == 0) && strings.Contains(word, "_") {
+		split_res := strings.Split(word, "_")
+		if len(split_res) > 0 {
+			res, err = searchType(proto_file, split_res[0])
+		}
+	}
+	return res, err
 }
 
 func JumpProtoDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]defines.LocationLink, err error) {
