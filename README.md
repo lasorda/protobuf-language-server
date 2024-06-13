@@ -26,6 +26,28 @@ Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
     }
 ```
 
+Using [lsp-config.nvim](https://github.com/neovim/nvim-lspconfig)
+
+```lua
+-- first we need to configure our custom server
+local configs = require('lspconfig.configs')
+local util = require('lspconfig.util')
+
+configs.pls = {
+    default_config = {
+        cmd = { 'path/to/pls' },
+        filetypes = { 'proto', 'cpp' },
+        root_fir = util.root_pattern('.git'),
+        single_file_support = true,
+        settings = {},
+    }
+}
+
+-- then we can continue as we do with official servers
+local lspconfig = require('lspconfig')
+lspconfig.pls.setup {}
+```
+
 if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md)
 
 ## features
