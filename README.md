@@ -3,10 +3,19 @@
 
 A language server implementation for Google Protocol Buffers
 
-## how to use
+## installation
 
-1. build the target `pls`, add `pls` to `PATH`
-2. for `coc.nvim`, `:CocConfig` like this
+Build binary
+
+```sh
+go build -o pls .
+```
+
+Add it to your PATH
+
+Configure vim/nvim
+
+Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
 
 ```json
     "languageserver": {
@@ -17,7 +26,7 @@ A language server implementation for Google Protocol Buffers
     }
 ```
 
-if you use vscode, see `vscode-extension/README.md`
+if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md)
 
 ## features
 
