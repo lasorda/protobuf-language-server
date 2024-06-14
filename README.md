@@ -3,10 +3,19 @@
 
 A language server implementation for Google Protocol Buffers
 
-## how to use
+## installation
 
-1. build the target `pls`, add `pls` to `PATH`
-2. for `coc.nvim`, `:CocConfig` like this
+Build binary
+
+```sh
+go build -o pls .
+```
+
+Add it to your PATH
+
+Configure vim/nvim
+
+Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
 
 ```json
     "languageserver": {
@@ -17,12 +26,34 @@ A language server implementation for Google Protocol Buffers
     }
 ```
 
-if you use vscode, see `vscode-extension/README.md`
+Using [lsp-config.nvim](https://github.com/neovim/nvim-lspconfig)
+
+```lua
+-- first we need to configure our custom server
+local configs = require('lspconfig.configs')
+local util = require('lspconfig.util')
+
+configs.pls = {
+    default_config = {
+        cmd = { 'path/to/pls' },
+        filetypes = { 'proto', 'cpp' },
+        root_fir = util.root_pattern('.git'),
+        single_file_support = true,
+        settings = {},
+    }
+}
+
+-- then we can continue as we do with official servers
+local lspconfig = require('lspconfig')
+lspconfig.pls.setup {}
+```
+
+if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md)
 
 ## features
 
-1. documentSymbol
-2. jump to defines
-3. format file with clang-format
-4. code completion
-5. jump from protobuf's cpp header to proto define (only global message and enum)
+1. Parsing document symbols
+2. Go to definition
+3. Format file with clang-format
+4. Code completion
+5. Jump from protobuf's cpp header to proto define (only global message and enum)
