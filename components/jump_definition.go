@@ -278,21 +278,15 @@ func getWord(line string, idx int, includeDot bool) string {
 	isWordChar := func(ch byte) bool {
 		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || (ch == '.' && includeDot)
 	}
-	ll := l
-	for ll >= 0 {
-		if !isWordChar(line[ll]) {
-			break
-		}
-		ll--
+
+	for l >= 0 && isWordChar(line[l]) {
+		l--
 	}
-	if ll != l {
-		ll = ll + 1
+	if l != idx {
+		l += 1
 	}
-	l = ll
-	for r < len(line) {
-		if !isWordChar(line[r]) {
-			break
-		}
+
+	for r < len(line) && isWordChar(line[r]) {
 		r++
 	}
 	return line[l:r]
