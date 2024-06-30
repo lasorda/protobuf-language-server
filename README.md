@@ -53,7 +53,8 @@ if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md
 ## features
 
 1. Parsing document symbols
-2. Go to definition
-3. Format file with clang-format
-4. Code completion
-5. Jump from protobuf's cpp header to proto define (only global message and enum)
+1. Go to definition
+1. Symbol definition on hover
+1. Format file with clang-format
+1. Code completion
+1. Jump from protobuf's cpp header to proto define (only global message and enum)
