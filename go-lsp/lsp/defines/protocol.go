@@ -933,7 +933,7 @@ type PublishDiagnosticsParams struct {
 	Version *int `json:"version,omitempty"`
 
 	// An array of diagnostic information items.
-	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
+	Diagnostics []Diagnostic `json:"diagnostics"`
 }
 
 /**
