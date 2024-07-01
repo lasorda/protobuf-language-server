@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"pls/proto/parser"
+	"pls/proto/view"
 	"strings"
 	"text/template"
 
@@ -29,7 +30,9 @@ func init() {
 }
 
 func Hover(ctx context.Context, req *defines.HoverParams) (result *defines.Hover, err error) {
-
+	if !view.IsProtoFile(req.TextDocument.Uri) {
+		return nil, nil
+	}
 	symbols, err := findSymbolDefinition(ctx, &req.TextDocumentPositionParams)
 	if err != nil {
 		return nil, err
