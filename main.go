@@ -56,5 +56,6 @@ func main() {
 	server.OnDefinition(components.JumpDefine)
 	server.OnDocumentFormatting(components.Format)
 	server.OnCompletion(components.Completion)
+	server.OnHover(components.Hover)
 	server.Run()
 }
