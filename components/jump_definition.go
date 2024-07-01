@@ -31,9 +31,6 @@ const (
 var ErrSymbolNotFound = errors.New("symbol not found")
 
 func JumpDefine(ctx context.Context, req *defines.DefinitionParams) (result *[]defines.LocationLink, err error) {
-	if !view.IsProtoFile(req.TextDocument.Uri) {
-		return nil, nil
-	}
 	symbols, err := findSymbolDefinition(ctx, &req.TextDocumentPositionParams)
 	if err != nil {
 		return nil, err
@@ -89,14 +86,16 @@ func locationFromSymbols(symbols []SymbolDefinition) (result []defines.LocationL
 }
 
 func findSymbolDefinition(ctx context.Context, position *defines.TextDocumentPositionParams) (result []SymbolDefinition, err error) {
-
 	if view.IsProtoFile(position.TextDocument.Uri) {
 		return JumpProtoDefine(ctx, position)
 	}
+
 	if view.IsPbHeader(position.TextDocument.Uri) {
 		return JumpPbHeaderDefine(ctx, position)
 	}
-
+	if !view.IsProtoFile(position.TextDocument.Uri) {
+		return nil, nil
+	}
 	return nil, ErrSymbolNotFound
 }
 
