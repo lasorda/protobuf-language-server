@@ -167,8 +167,22 @@ func JumpProtoDefine(ctx context.Context, position *defines.TextDocumentPosition
 		}
 	}
 
-	for _, im := range proto_file.Proto().Imports() {
-		import_uri, err := view.GetDocumentUriFromImportPath(proto_file.URI(), im.ProtoImport.Filename)
+	res, err := searchImport(proto_file, package_name, my_package, word, "")
+	if err == nil && len(res) > 0 {
+		return res, nil
+	}
+
+	return nil, nil
+}
+
+func searchImport(proto view.ProtoFile, package_name, my_package, word, kind string) (result []SymbolDefinition, err error) {
+	for _, im := range proto.Proto().Imports() {
+
+		if kind != "" && im.ProtoImport.Kind != kind {
+			continue
+		}
+
+		import_uri, err := view.GetDocumentUriFromImportPath(proto.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
 		}
@@ -188,45 +202,16 @@ func JumpProtoDefine(ctx context.Context, position *defines.TextDocumentPosition
 				}
 			}
 		}
-		res, err := searchPublicImport(import_file, package_name, my_package, word)
+		res, err := searchImport(import_file, package_name, my_package, word, "public")
 		if res != nil && len(res) > 0 {
 			return res, err
 		}
 	}
 
 	return nil, nil
+
 }
 
-func searchPublicImport(import_file view.ProtoFile, package_name string, my_package string, word string) (result []SymbolDefinition, err error) {
-	for _, imp := range import_file.Proto().Imports() {
-		if imp.ProtoImport.Kind == "public" {
-			import_uri, err := view.GetDocumentUriFromImportPath(import_file.URI(), imp.ProtoImport.Filename)
-			if err != nil {
-				continue
-			}
-
-			import_file, err := view.ViewManager.GetFile(import_uri)
-			if err != nil {
-				continue
-			}
-			packages := import_file.Proto().Packages()
-			if len(packages) > 0 {
-				if qualifierReferencesPackage(package_name, packages[0].ProtoPackage.Name, my_package) {
-					// same packages_name in different file
-					res, err := searchType(import_file, word)
-					if err == nil && len(res) > 0 {
-						return res, nil
-					}
-				}
-			}
-			res, err := searchPublicImport(import_file, package_name, my_package, word)
-			if res != nil && len(res) > 0 {
-				return res, err
-			}
-		}
-	}
-	return nil, nil
-}
 func qualifierReferencesPackage(query_pkg string, candidate_pkg string, current_pkg string) bool {
 	if query_pkg == candidate_pkg { // fully qualified name
 		return true
