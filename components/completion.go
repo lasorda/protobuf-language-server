@@ -84,19 +84,39 @@ func CompletionInThisFile(file view.ProtoFile) (result *[]defines.CompletionItem
 	kindEnum := defines.CompletionItemKindEnum
 	res := protoKeywordCompletionItems
 	for _, enums := range file.Proto().Enums() {
+
+		doc := formatHover(SymbolDefinition{
+			Type: DefinitionTypeEnum,
+			Enum: enums,
+		})
+
 		res = append(res, defines.CompletionItem{
 			Label:      enums.Protobuf().Name,
 			Kind:       &kindEnum,
 			InsertText: &enums.Protobuf().Name,
+			Documentation: defines.MarkupContent{
+				Kind:  defines.MarkupKindMarkdown,
+				Value: doc,
+			},
 		})
 	}
 
 	kindClass := defines.CompletionItemKindClass
 	for _, message := range file.Proto().Messages() {
+
+		doc := formatHover(SymbolDefinition{
+			Type:    DefinitionTypeMessage,
+			Message: message,
+		})
+
 		res = append(res, defines.CompletionItem{
 			Label:      message.Protobuf().Name,
 			Kind:       &kindClass,
 			InsertText: &message.Protobuf().Name,
+			Documentation: defines.MarkupContent{
+				Kind:  defines.MarkupKindMarkdown,
+				Value: doc,
+			},
 		})
 	}
 	return &res, nil
