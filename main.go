@@ -57,5 +57,6 @@ func main() {
 	server.OnDocumentFormatting(components.Format)
 	server.OnCompletion(components.Completion)
 	server.OnHover(components.Hover)
+	server.OnDocumentRangeFormatting(components.FormatRange)
 	server.Run()
 }
