@@ -3,6 +3,7 @@ package components
 import (
 	"context"
 	"pls/proto/view"
+	"strings"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
@@ -45,12 +46,19 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 
 	var res []defines.CompletionItem
 
+	// suggest imported packages that match what user has typed so far
+	//
+	// word = "google"
+	// suggest = [ google.protobuf , google.api ]
+	for _, pkg := range GetImportedPackages(proto_file) {
+		if strings.HasPrefix(*pkg.InsertText, wordWithDot) {
+			res = append(res, pkg)
+		}
+	}
+
 	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {
-
-		res = protoKeywordCompletionItems
+		res = append(res, protoKeywordCompletionItems...)
 		res = append(res, CompletionInThisFile(proto_file)...)
-		res = append(res, GetImportedPackages(proto_file)...)
-
 		return &res, err
 	}
 
