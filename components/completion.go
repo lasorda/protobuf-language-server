@@ -4,6 +4,7 @@ import (
 	"context"
 	"pls/proto/view"
 	"strings"
+	"time"
 
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
@@ -15,6 +16,8 @@ var (
 	kindModule  = defines.CompletionItemKindModule
 	kindClass   = defines.CompletionItemKindClass
 	kindEnum    = defines.CompletionItemKindEnum
+
+	defaultCompletionTimeout = time.Millisecond * 500
 )
 
 func init() {
@@ -36,6 +39,9 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 	if !view.IsProtoFile(req.TextDocument.Uri) {
 		return nil, nil
 	}
+	ctx, cancel := context.WithTimeout(ctx, defaultCompletionTimeout)
+	defer cancel()
+
 	proto_file, err := view.ViewManager.GetFile(req.TextDocument.Uri)
 	if err != nil || proto_file.Proto() == nil {
 		return nil, nil
@@ -49,7 +55,7 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 	//
 	// word = "google"
 	// suggest = [ google.protobuf , google.api ]
-	for _, pkg := range GetImportedPackages(proto_file) {
+	for _, pkg := range GetImportedPackages(ctx, proto_file) {
 		if strings.HasPrefix(*pkg.InsertText, wordWithDot) {
 			res = append(res, pkg)
 		}
@@ -57,19 +63,25 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 
 	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {
 		res = append(res, protoKeywordCompletionItems...)
-		res = append(res, CompletionInThisFile(proto_file)...)
+		res = append(res, CompletionInThisFile(ctx, proto_file)...)
 		return &res, err
 	}
 
 	packageName := strings.TrimSuffix(wordWithDot, ".")
-	res = append(res, CompletionInPackage(proto_file, packageName)...)
+	res = append(res, CompletionInPackage(ctx, proto_file, packageName)...)
 
 	return &res, nil
 }
 
-func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionItem) {
+func GetImportedPackages(ctx context.Context, proto_file view.ProtoFile) (res []defines.CompletionItem) {
 	unique := make(map[string]struct{})
 	for _, im := range proto_file.Proto().Imports() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		import_uri, err := view.GetDocumentUriFromImportPath(proto_file.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
@@ -102,9 +114,14 @@ func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionIte
 	return res
 }
 
-func CompletionInPackage(file view.ProtoFile, packageName string) (res []defines.CompletionItem) {
-
+func CompletionInPackage(ctx context.Context, file view.ProtoFile, packageName string) (res []defines.CompletionItem) {
 	for _, im := range file.Proto().Imports() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		import_uri, err := view.GetDocumentUriFromImportPath(file.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
@@ -121,14 +138,20 @@ func CompletionInPackage(file view.ProtoFile, packageName string) (res []defines
 
 		importedPackage := imported_file.Proto().Packages()[0].ProtoPackage.Name
 		if importedPackage == packageName {
-			res = append(res, CompletionInThisFile(imported_file)...)
+			res = append(res, CompletionInThisFile(ctx, imported_file)...)
 		}
 
 	}
 	return res
 }
 
-func CompletionInThisFile(file view.ProtoFile) (res []defines.CompletionItem) {
+func CompletionInThisFile(ctx context.Context, file view.ProtoFile) (res []defines.CompletionItem) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+
 	for _, enums := range file.Proto().Enums() {
 
 		doc := formatHover(SymbolDefinition{
