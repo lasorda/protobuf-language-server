@@ -41,7 +41,6 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 		return nil, nil
 	}
 	line_str := proto_file.ReadLine(int(req.Position.Line))
-	word := getWord(line_str, int(req.Position.Character-1), false)
 	wordWithDot := getWord(line_str, int(req.Position.Character-1), true)
 
 	var res []defines.CompletionItem
@@ -62,26 +61,9 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 		return &res, err
 	}
 
-	for _, im := range proto_file.Proto().Imports() {
-		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
-		if err != nil {
-			continue
-		}
+	packageName := strings.TrimSuffix(wordWithDot, ".")
+	res = append(res, CompletionInPackage(proto_file, packageName)...)
 
-		file, err := view.ViewManager.GetFile(import_uri)
-		if err != nil {
-			continue
-		}
-
-		if len(file.Proto().Packages()) == 0 {
-			continue
-		}
-
-		packageName := file.Proto().Packages()[0].ProtoPackage.Name
-		if packageName == word || packageName+"." == wordWithDot {
-			res = append(res, CompletionInThisFile(file)...)
-		}
-	}
 	return &res, nil
 }
 
@@ -117,6 +99,32 @@ func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionIte
 
 	}
 
+	return res
+}
+
+func CompletionInPackage(file view.ProtoFile, packageName string) (res []defines.CompletionItem) {
+
+	for _, im := range file.Proto().Imports() {
+		import_uri, err := view.GetDocumentUriFromImportPath(file.URI(), im.ProtoImport.Filename)
+		if err != nil {
+			continue
+		}
+
+		imported_file, err := view.ViewManager.GetFile(import_uri)
+		if err != nil {
+			continue
+		}
+
+		if len(imported_file.Proto().Packages()) == 0 {
+			continue
+		}
+
+		importedPackage := imported_file.Proto().Packages()[0].ProtoPackage.Name
+		if importedPackage == packageName {
+			res = append(res, CompletionInThisFile(imported_file)...)
+		}
+
+	}
 	return res
 }
 
