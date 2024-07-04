@@ -7,10 +7,16 @@ import (
 	"github.com/TobiasYin/go-lsp/lsp/defines"
 )
 
-var protoKeywordCompletionItems []defines.CompletionItem
+var (
+	protoKeywordCompletionItems []defines.CompletionItem
+
+	kindKeyword = defines.CompletionItemKindKeyword
+	kindModule  = defines.CompletionItemKindModule
+	kindClass   = defines.CompletionItemKindClass
+	kindEnum    = defines.CompletionItemKindEnum
+)
 
 func init() {
-	kindKeyword := defines.CompletionItemKindKeyword
 	for _, keyword := range []string{"string", "bytes", "double", "float", "int32", "int64",
 		"uint32", "uint64", "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64", "bool",
 		"message", "enum", "service", "rpc", "optional", "repeated", "required",
@@ -94,7 +100,6 @@ func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionIte
 			continue
 		}
 
-		kindModule := defines.CompletionItemKindModule
 		unique[packageName] = struct{}{}
 		res = append(res, defines.CompletionItem{
 			Label:      packageName,
@@ -108,7 +113,6 @@ func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionIte
 }
 
 func CompletionInThisFile(file view.ProtoFile) (res []defines.CompletionItem) {
-	kindEnum := defines.CompletionItemKindEnum
 	for _, enums := range file.Proto().Enums() {
 
 		doc := formatHover(SymbolDefinition{
@@ -127,7 +131,6 @@ func CompletionInThisFile(file view.ProtoFile) (res []defines.CompletionItem) {
 		})
 	}
 
-	kindClass := defines.CompletionItemKindClass
 	for _, message := range file.Proto().Messages() {
 
 		doc := formatHover(SymbolDefinition{
