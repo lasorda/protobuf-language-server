@@ -36,12 +36,18 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 	line_str := proto_file.ReadLine(int(req.Position.Line))
 	word := getWord(line_str, int(req.Position.Character-1), false)
 	wordWithDot := getWord(line_str, int(req.Position.Character-1), true)
-	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {
-		res, err := CompletionInThisFile(proto_file)
-		*res = append(*res, GetImportedPackages(proto_file)...)
 
-		return res, err
+	var res []defines.CompletionItem
+
+	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {
+
+		res = protoKeywordCompletionItems
+		res = append(res, CompletionInThisFile(proto_file)...)
+		res = append(res, GetImportedPackages(proto_file)...)
+
+		return &res, err
 	}
+
 	for _, im := range proto_file.Proto().Imports() {
 		import_uri, err := view.GetDocumentUriFromImportPath(req.TextDocument.Uri, im.ProtoImport.Filename)
 		if err != nil {
@@ -59,10 +65,10 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 
 		packageName := file.Proto().Packages()[0].ProtoPackage.Name
 		if packageName == word || packageName+"." == wordWithDot {
-			return CompletionInThisFile(file)
+			res = append(res, CompletionInThisFile(file)...)
 		}
 	}
-	return nil, nil
+	return &res, nil
 }
 
 func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionItem) {
@@ -101,9 +107,8 @@ func GetImportedPackages(proto_file view.ProtoFile) (res []defines.CompletionIte
 	return res
 }
 
-func CompletionInThisFile(file view.ProtoFile) (result *[]defines.CompletionItem, err error) {
+func CompletionInThisFile(file view.ProtoFile) (res []defines.CompletionItem) {
 	kindEnum := defines.CompletionItemKindEnum
-	res := protoKeywordCompletionItems
 	for _, enums := range file.Proto().Enums() {
 
 		doc := formatHover(SymbolDefinition{
@@ -140,5 +145,5 @@ func CompletionInThisFile(file view.ProtoFile) (result *[]defines.CompletionItem
 			},
 		})
 	}
-	return &res, nil
+	return res
 }
