@@ -35,6 +35,7 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 	}
 	line_str := proto_file.ReadLine(int(req.Position.Line))
 	word := getWord(line_str, int(req.Position.Character-1), false)
+	wordWithDot := getWord(line_str, int(req.Position.Character-1), true)
 	if req.Context.TriggerKind != defines.CompletionTriggerKindTriggerCharacter {
 		res, err := CompletionInThisFile(proto_file)
 		*res = append(*res, GetImportedPackages(proto_file)...)
@@ -52,7 +53,12 @@ func Completion(ctx context.Context, req *defines.CompletionParams) (*[]defines.
 			continue
 		}
 
-		if len(file.Proto().Packages()) > 0 && file.Proto().Packages()[0].ProtoPackage.Name == word {
+		if len(file.Proto().Packages()) == 0 {
+			continue
+		}
+
+		packageName := file.Proto().Packages()[0].ProtoPackage.Name
+		if packageName == word || packageName+"." == wordWithDot {
 			return CompletionInThisFile(file)
 		}
 	}
