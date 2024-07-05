@@ -1,63 +1,63 @@
 {
-    "name": "protobuf-language-server",
-    "displayName": "protobuf-language-server",
-    "description": "A language server implementation for Google Protocol Buffers",
-    "repository": "https://github.com/lasorda/protobuf-language-server",
-    "publisher": "panzhihao",
-    "version": "0.0.7",
-    "engines": {
-        "vscode": "^1.67.0"
-    },
-    "categories": [
-        "Programming Languages"
-    ],
-    "activationEvents": [
-        "onLanguage:proto"
-    ],
-    "main": "./out/extension.js",
-    "contributes": {
-        "languages": [
-            {
-                "id": "proto",
-                "extensions": [
-                    ".proto"
-                ],
-                "aliases": [
-                    "Protocol Buffers"
-                ]
-            }
-        ],
-        "grammars": [
-            {
-                "language": "proto",
-                "scopeName": "source.proto",
-                "path": "./syntaxes/proto.tmLanguage"
-            }
-        ],
-        "commands": []
-    },
-    "scripts": {
-        "vscode:prepublish": "yarn run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "pretest": "yarn run compile && yarn run lint",
-        "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
-    },
-    "devDependencies": {
-        "@types/glob": "^7.2.0",
-        "@types/mocha": "^9.1.1",
-        "@types/node": "16.x",
-        "@types/vscode": "^1.67.0",
-        "@typescript-eslint/eslint-plugin": "^5.27.0",
-        "@typescript-eslint/parser": "^5.27.0",
-        "@vscode/test-electron": "^2.1.3",
-        "eslint": "^8.16.0",
-        "glob": "^8.0.3",
-        "mocha": "^10.0.0",
-        "typescript": "^4.7.2"
-    },
-    "dependencies": {
-        "vscode-languageclient": "^8.0.1"
-    }
+  "name": "protobuf-language-server",
+  "displayName": "protobuf-language-server",
+  "description": "A language server implementation for Google Protocol Buffers",
+  "repository": "https://github.com/lasorda/protobuf-language-server",
+  "publisher": "panzhihao",
+  "version": "0.0.8",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+      "Programming Languages"
+  ],
+  "activationEvents": [
+      "onLanguage:proto"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+      "languages": [
+          {
+              "id": "proto",
+              "extensions": [
+                  ".proto"
+              ],
+              "aliases": [
+                  "Protocol Buffers"
+              ]
+          }
+      ],
+      "grammars": [
+          {
+              "language": "proto",
+              "scopeName": "source.proto",
+              "path": "./syntaxes/proto.tmLanguage"
+          }
+      ],
+      "commands": []
+  },
+  "scripts": {
+      "vscode:prepublish": "yarn run compile",
+      "compile": "tsc -p ./",
+      "watch": "tsc -watch -p ./",
+      "pretest": "yarn run compile && yarn run lint",
+      "lint": "eslint src --ext ts",
+      "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+      "@types/glob": "^7.2.0",
+      "@types/mocha": "^9.1.1",
+      "@types/node": "16.x",
+      "@types/vscode": "^1.67.0",
+      "@typescript-eslint/eslint-plugin": "^5.27.0",
+      "@typescript-eslint/parser": "^5.27.0",
+      "@vscode/test-electron": "^2.1.3",
+      "eslint": "^8.16.0",
+      "glob": "^8.0.3",
+      "mocha": "^10.0.0",
+      "typescript": "^4.7.2"
+  },
+  "dependencies": {
+      "vscode-languageclient": "^8.0.1"
+  }
 }
