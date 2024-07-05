@@ -119,7 +119,7 @@ func generateOneNoResp(name, regName, args, error, code string, withBuiltin bool
 
 func TestMethodsGen(t *testing.T) {
 	res := generate(methods)
-	err := ioutil.WriteFile("/Users/tobias/projects/go-lsp/lsp/methods_gen.go", []byte(res), 0777)
+	err := ioutil.WriteFile("methods_gen.go", []byte(res), 0777)
 	if err != nil {
 		panic(err)
 	}
