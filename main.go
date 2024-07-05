@@ -2,10 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
-	"os"
-	"path"
 
 	"github.com/lasorda/protobuf-language-server/components"
 	"github.com/lasorda/protobuf-language-server/proto/view"
@@ -15,41 +11,25 @@ import (
 	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
-func strPtr(str string) *string {
-	return &str
-}
+var (
+	logPath *string
+)
 
 func init() {
-	var logger *log.Logger
-	var logPath *string
-	defer func() {
-		logs.Init(logger)
-	}()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		home = ""
-	}
-	logPath = flag.String("logs", path.Join(home, ".protobuf-language-server.log"), "logs file path")
-	if logPath == nil || *logPath == "" {
-		logger = log.New(os.Stderr, "", 0)
-		return
-	}
-	p := *logPath
-	if _, err := os.Stat(p); err == nil {
-		os.Rename(p, p+".bak")
-	}
-	f, err := os.Create(p)
-	if err == nil {
-		logger = log.New(f, "", 0)
-		return
-	}
-	panic(fmt.Sprintf("logs init error: %v", err))
+	logPath = flag.String("logs", logs.DefaultLogFilePath(), "logs file path")
 }
 
 func main() {
-	server := lsp.NewServer(&lsp.Options{CompletionProvider: &defines.CompletionOptions{
-		TriggerCharacters: &[]string{"."},
-	}})
+	flag.Parse()
+	logs.Init(logPath)
+
+	config := &lsp.Options{
+		CompletionProvider: &defines.CompletionOptions{
+			TriggerCharacters: &[]string{"."},
+		},
+	}
+
+	server := lsp.NewServer(config)
 
 	view.Init(server)
 	server.OnDocumentSymbolWithSliceDocumentSymbol(components.ProvideDocumentSymbol)
