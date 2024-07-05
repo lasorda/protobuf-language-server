@@ -4,7 +4,7 @@
     "description": "A language server implementation for Google Protocol Buffers",
     "repository": "https://github.com/lasorda/protobuf-language-server",
     "publisher": "panzhihao",
-    "version": "0.0.5",
+    "version": "0.0.7",
     "engines": {
         "vscode": "^1.67.0"
     },
