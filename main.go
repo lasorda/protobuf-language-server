@@ -12,11 +12,13 @@ import (
 )
 
 var (
+	address *string
 	logPath *string
 )
 
 func init() {
 	logPath = flag.String("logs", logs.DefaultLogFilePath(), "logs file path")
+	address = flag.String("listen", "", "address on which to listen for remote connections")
 }
 
 func main() {
@@ -27,6 +29,10 @@ func main() {
 		CompletionProvider: &defines.CompletionOptions{
 			TriggerCharacters: &[]string{"."},
 		},
+	}
+	if *address != "" {
+		config.Address = *address
+		config.Network = "tcp"
 	}
 
 	server := lsp.NewServer(config)
