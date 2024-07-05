@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/TobiasYin/go-lsp/lsp/defines"
+import "pls/go-lsp/lsp/defines"
 
 type method struct {
 	Name          string

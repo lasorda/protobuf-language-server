@@ -3,7 +3,7 @@ package parser
 import (
 	"io"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
 )
 

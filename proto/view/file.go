@@ -6,7 +6,7 @@ import (
 
 	"pls/proto/parser"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 )
 
 // File represents a source file of any type.

@@ -3,8 +3,8 @@ package parser
 import (
 	"sync"
 
-	"github.com/TobiasYin/go-lsp/logs"
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/logs"
+	"pls/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
 )
 

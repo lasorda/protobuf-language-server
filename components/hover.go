@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 	"github.com/emicklei/proto"
 )
 

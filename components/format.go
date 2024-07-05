@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"pls/proto/view"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 )
 
 func Format(ctx context.Context, req *defines.DocumentFormattingParams) (result *[]defines.TextEdit, err error) {

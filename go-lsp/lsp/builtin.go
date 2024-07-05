@@ -3,7 +3,7 @@ package lsp
 import (
 	"context"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 )
 
 func (m *Methods) builtinInitialize(ctx context.Context, req *defines.InitializeParams) (defines.InitializeResult, error) {

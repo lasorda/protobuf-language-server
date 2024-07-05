@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/TobiasYin/go-lsp/logs"
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/logs"
+	"pls/go-lsp/lsp/defines"
 )
 
 type SymbolDefinition struct {

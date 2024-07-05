@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 )
 
 type typ_ struct {

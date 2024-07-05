@@ -4,8 +4,8 @@ import (
 	"context"
 	"pls/proto/view"
 
-	"github.com/TobiasYin/go-lsp/logs"
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/logs"
+	"pls/go-lsp/lsp/defines"
 )
 
 func ProvideDocumentSymbol(ctx context.Context, req *defines.DocumentSymbolParams) (result *[]defines.DocumentSymbol, err error) {

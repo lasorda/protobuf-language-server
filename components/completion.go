@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/lsp/defines"
 )
 
 var (

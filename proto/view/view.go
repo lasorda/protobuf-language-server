@@ -14,9 +14,9 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/TobiasYin/go-lsp/logs"
-	"github.com/TobiasYin/go-lsp/lsp"
-	"github.com/TobiasYin/go-lsp/lsp/defines"
+	"pls/go-lsp/logs"
+	"pls/go-lsp/lsp"
+	"pls/go-lsp/lsp/defines"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/uri"
 
