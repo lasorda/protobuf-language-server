@@ -2,11 +2,12 @@ package components
 
 import (
 	"context"
-	"pls/proto/view"
 	"strings"
 	"time"
 
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/proto/view"
+
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 var (

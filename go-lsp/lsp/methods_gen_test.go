@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 type typ_ struct {

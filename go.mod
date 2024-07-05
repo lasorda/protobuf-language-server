@@ -1,4 +1,4 @@
-module pls
+module github.com/lasorda/protobuf-language-server
 
 go 1.16
 

@@ -7,12 +7,12 @@ import (
 	"os"
 	"path"
 
-	"pls/components"
-	"pls/proto/view"
+	"github.com/lasorda/protobuf-language-server/components"
+	"github.com/lasorda/protobuf-language-server/proto/view"
 
-	"pls/go-lsp/logs"
-	"pls/go-lsp/lsp"
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 func strPtr(str string) *string {
@@ -29,7 +29,7 @@ func init() {
 	if err != nil {
 		home = ""
 	}
-	logPath = flag.String("logs", path.Join(home, ".pls.log"), "logs file path")
+	logPath = flag.String("logs", path.Join(home, ".protobuf-language-server.log"), "logs file path")
 	if logPath == nil || *logPath == "" {
 		logger = log.New(os.Stderr, "", 0)
 		return

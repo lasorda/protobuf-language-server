@@ -1,6 +1,6 @@
 package lsp
 
-import "pls/go-lsp/lsp/defines"
+import "github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 
 type Options struct {
 	// if Network is null, will use stdio

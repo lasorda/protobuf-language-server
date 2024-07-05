@@ -5,7 +5,7 @@ A language server implementation for Google Protocol Buffers
 ## how to use
 
 1. Get code from [https://github.com/lasorda/protobuf-language-server](https://github.com/lasorda/protobuf-language-server)
-2. Build the target `pls`, add `pls` to `PATH`
+2. Build the target `protobuf-language-server`, add `protobuf-language-server` to `PATH`
 
 ## features
 

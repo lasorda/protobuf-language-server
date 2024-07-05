@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"pls/proto/parser"
-	"pls/proto/view"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view"
 	"regexp"
 	"strings"
 
-	"pls/go-lsp/logs"
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 type SymbolDefinition struct {

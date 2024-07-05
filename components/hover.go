@@ -3,12 +3,12 @@ package components
 import (
 	"bytes"
 	"context"
-	"pls/proto/parser"
-	"pls/proto/view"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view"
 	"strings"
 	"text/template"
 
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 	"github.com/emicklei/proto"
 )
 

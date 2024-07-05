@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"pls/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
 
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 // File represents a source file of any type.

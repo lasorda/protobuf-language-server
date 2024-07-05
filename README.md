@@ -1,5 +1,5 @@
 
-# pls
+# protobuf-language-server
 
 A language server implementation for Google Protocol Buffers
 
@@ -8,7 +8,7 @@ A language server implementation for Google Protocol Buffers
 Build binary
 
 ```sh
-go build -o pls .
+go install github.com/lasorda/protobuf-language-server@master
 ```
 
 Add it to your PATH
@@ -20,7 +20,7 @@ Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
 ```json
     "languageserver": {
         "proto" :{
-            "command": "pls",
+            "command": "protobuf-language-server",
             "filetypes": ["proto", "cpp"]
         }
     }
@@ -33,9 +33,9 @@ Using [lsp-config.nvim](https://github.com/neovim/nvim-lspconfig)
 local configs = require('lspconfig.configs')
 local util = require('lspconfig.util')
 
-configs.pls = {
+configs.protobuf-language-server = {
     default_config = {
-        cmd = { 'path/to/pls' },
+        cmd = { 'path/to/protobuf-language-server' },
         filetypes = { 'proto', 'cpp' },
         root_fir = util.root_pattern('.git'),
         single_file_support = true,
@@ -45,7 +45,7 @@ configs.pls = {
 
 -- then we can continue as we do with official servers
 local lspconfig = require('lspconfig')
-lspconfig.pls.setup {}
+lspconfig.protobuf-language-server.setup {}
 ```
 
 if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md)

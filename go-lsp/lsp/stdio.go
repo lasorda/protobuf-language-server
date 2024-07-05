@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"pls/go-lsp/jsonrpc"
+	"github.com/lasorda/protobuf-language-server/go-lsp/jsonrpc"
 )
 
 type stdioReaderWriter struct {

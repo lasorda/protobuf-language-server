@@ -8,9 +8,9 @@ import (
 	"math"
 	"os/exec"
 	"path/filepath"
-	"pls/proto/view"
+	"github.com/lasorda/protobuf-language-server/proto/view"
 
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 func Format(ctx context.Context, req *defines.DocumentFormattingParams) (result *[]defines.TextEdit, err error) {

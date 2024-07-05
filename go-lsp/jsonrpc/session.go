@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"pls/go-lsp/logs"
+	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
 	jsoniter "github.com/json-iterator/go"
 )
 

@@ -14,13 +14,13 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"pls/go-lsp/logs"
-	"pls/go-lsp/lsp"
-	"pls/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/uri"
 
-	"pls/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
 )
 
 type view struct {
