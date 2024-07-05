@@ -8,7 +8,8 @@ A language server implementation for Google Protocol Buffers
 Build binary
 
 ```sh
-go install github.com/lasorda/protobuf-language-server@master
+go clean -modcache
+go install github.com/lasorda/protobuf-language-server@latest
 ```
 
 Add it to your PATH
