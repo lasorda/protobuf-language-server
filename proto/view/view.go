@@ -38,6 +38,7 @@ type view struct {
 
 	pbHeaders map[defines.DocumentUri][]string
 	Server    *lsp.Server
+	settings  Settings
 	fs        fs.FS
 }
 
@@ -294,6 +295,12 @@ func (v *view) GetDocumentUriFromImportPath(cwd defines.DocumentUri, import_name
 		if v.fs.FileExists(abs_name) {
 			return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
 		}
+		for _, additionalProtoDir := range v.settings.AdditionalProtoDirs {
+			abs_name := path.Join(pos, additionalProtoDir, import_name)
+			if v.fs.FileExists(abs_name) {
+				return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+			}
+		}
 		pos = path.Join(pos, "..")
 	}
 	return res, fmt.Errorf("%w: import %s", ErrNotFound, import_name)
@@ -371,6 +378,14 @@ func onInitialized(ctx context.Context, req *defines.InitializeParams) (err erro
 }
 
 func onDidChangeConfiguration(ctx context.Context, req *defines.DidChangeConfigurationParams) (err error) {
+	if ViewManager == nil {
+		return nil
+	}
+	settings, err := SettingsFromInterface(req.Settings)
+	if err != nil {
+		return err
+	}
+	ViewManager.settings = *settings
 	return nil
 }
 
