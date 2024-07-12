@@ -183,7 +183,7 @@ func searchImport(proto view.ProtoFile, package_name, my_package, word, kind str
 			continue
 		}
 
-		import_uri, err := view.GetDocumentUriFromImportPath(proto.URI(), im.ProtoImport.Filename)
+		import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(proto.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
 		}
@@ -236,7 +236,7 @@ func jumpImport(ctx context.Context, position *defines.TextDocumentPositionParam
 	if pos == nil {
 		return nil, fmt.Errorf("import match failed")
 	}
-	import_uri, err := view.GetDocumentUriFromImportPath(position.TextDocument.Uri, line_str[pos[0]+1:pos[1]-1])
+	import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(position.TextDocument.Uri, line_str[pos[0]+1:pos[1]-1])
 	if err != nil {
 		return nil, err
 	}
