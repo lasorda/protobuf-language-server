@@ -24,6 +24,9 @@ Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
         "proto" :{
             "command": "protobuf-language-server",
             "filetypes": ["proto", "cpp"]
+            "settings": {
+                "additional-proto-dirs": [ ]
+            }
         }
     }
 ```
@@ -41,7 +44,13 @@ configs.protobuf-language-server = {
         filetypes = { 'proto', 'cpp' },
         root_fir = util.root_pattern('.git'),
         single_file_support = true,
-        settings = {},
+        settings = {
+            ["additional-proto-dirs"] = [
+                -- path to additional protobuf directories
+                -- "vendor",
+                -- "third_party",
+            ]
+        },
     }
 }
 
