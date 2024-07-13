@@ -83,7 +83,7 @@ func GetImportedPackages(ctx context.Context, proto_file view.ProtoFile) (res []
 		default:
 		}
 
-		import_uri, err := view.GetDocumentUriFromImportPath(proto_file.URI(), im.ProtoImport.Filename)
+		import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(proto_file.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
 		}
@@ -123,7 +123,7 @@ func CompletionInPackage(ctx context.Context, file view.ProtoFile, packageName s
 		default:
 		}
 
-		import_uri, err := view.GetDocumentUriFromImportPath(file.URI(), im.ProtoImport.Filename)
+		import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(file.URI(), im.ProtoImport.Filename)
 		if err != nil {
 			continue
 		}

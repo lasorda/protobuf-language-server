@@ -3,11 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
@@ -19,36 +16,31 @@ func strPtr(str string) *string {
 	return &str
 }
 
-var logPath *string
+var (
+	address *string
+	logPath *string
+)
 
 func init() {
-	var logger *log.Logger
-	defer func() {
-		logs.Init(logger)
-	}()
-	logPath = flag.String("logs", "", "logs file path")
-	if logPath == nil || *logPath == "" {
-		logger = log.New(os.Stderr, "", 0)
-		return
-	}
-	p := *logPath
-	f, err := os.Open(p)
-	if err == nil {
-		logger = log.New(f, "", 0)
-		return
-	}
-	f, err = os.Create(p)
-	if err == nil {
-		logger = log.New(f, "", 0)
-		return
-	}
-	panic(fmt.Sprintf("logs init error: %v", *logPath))
+	logPath = flag.String("logs", logs.DefaultLogFilePath(), "logs file path")
+	address = flag.String("listen", "", "address on which to listen for remote connections")
 }
 
 func main() {
-	server := lsp.NewServer(&lsp.Options{CompletionProvider: &defines.CompletionOptions{
-		TriggerCharacters: &[]string{"."},
-	}})
+	flag.Parse()
+	logs.Init(logPath)
+
+	config := &lsp.Options{
+		CompletionProvider: &defines.CompletionOptions{
+			TriggerCharacters: &[]string{"."},
+		},
+	}
+	if *address != "" {
+		config.Address = *address
+		config.Network = "tcp"
+	}
+
+	server := lsp.NewServer(config)
 	server.OnHover(func(ctx context.Context, req *defines.HoverParams) (result *defines.Hover, err error) {
 		logs.Println("hover: ", req)
 		return &defines.Hover{Contents: defines.MarkupContent{Kind: defines.MarkupKindPlainText, Value: "hello world"}}, nil

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -21,6 +22,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view/fs"
 )
 
 type view struct {
@@ -36,7 +38,11 @@ type view struct {
 
 	pbHeaders map[defines.DocumentUri][]string
 	Server    *lsp.Server
+	settings  Settings
+	fs        fs.FS
 }
+
+var ErrNotFound = errors.New("not found")
 
 func (v *view) GetFile(document_uri defines.DocumentUri) (ProtoFile, error) {
 	if f, ok := v.filesByURI[document_uri]; ok {
@@ -223,7 +229,7 @@ func (v *view) parseImportProto(document_uri defines.DocumentUri) {
 		return
 	}
 	for _, i := range proto_file.Proto().Imports() {
-		import_uri, err := GetDocumentUriFromImportPath(document_uri, i.ProtoImport.Filename)
+		import_uri, err := ViewManager.GetDocumentUriFromImportPath(document_uri, i.ProtoImport.Filename)
 		if err != nil {
 			logs.Printf("parse import err:%v", err)
 			continue
@@ -266,6 +272,7 @@ func newView() *view {
 		openFiles:   make(map[defines.DocumentUri]bool),
 		openFileMu:  &sync.RWMutex{},
 		pbHeaders:   make(map[defines.DocumentUri][]string),
+		fs:          &fs.RealFS{},
 	}
 }
 
@@ -280,18 +287,23 @@ func parseProto(document_uri defines.DocumentUri, data []byte) (proto parser.Pro
 	return proto, err
 }
 
-func GetDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
+func (v *view) GetDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
 	pos := path.Dir(uri.URI(cwd).Filename())
 	var res defines.DocumentUri
 	for path.Clean(pos) != "/" {
 		abs_name := path.Join(pos, import_name)
-		_, err := os.Stat(abs_name)
-		if err == nil {
+		if v.fs.FileExists(abs_name) {
 			return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+		}
+		for _, additionalProtoDir := range v.settings.AdditionalProtoDirs {
+			abs_name := path.Join(pos, additionalProtoDir, import_name)
+			if v.fs.FileExists(abs_name) {
+				return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+			}
 		}
 		pos = path.Join(pos, "..")
 	}
-	return res, fmt.Errorf("import %v not found", import_name)
+	return res, fmt.Errorf("%w: import %s", ErrNotFound, import_name)
 }
 
 func toUtf8(iso8859_1_buf []byte) []byte {
@@ -366,6 +378,14 @@ func onInitialized(ctx context.Context, req *defines.InitializeParams) (err erro
 }
 
 func onDidChangeConfiguration(ctx context.Context, req *defines.DidChangeConfigurationParams) (err error) {
+	if ViewManager == nil {
+		return nil
+	}
+	settings, err := SettingsFromInterface(req.Settings)
+	if err != nil {
+		return err
+	}
+	ViewManager.settings = *settings
 	return nil
 }
 
