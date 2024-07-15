@@ -3,13 +3,14 @@ package components
 import (
 	"bytes"
 	"context"
-	"github.com/lasorda/protobuf-language-server/proto/parser"
-	"github.com/lasorda/protobuf-language-server/proto/view"
 	"strings"
 	"text/template"
 
-	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view"
+
 	"github.com/emicklei/proto"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 var hoverTmpl *template.Template
@@ -20,13 +21,9 @@ func init() {
 	hoverTmpl = hoverTmpl.Funcs(getCustomFuncs(hoverTmpl))
 	hoverTmpl = template.Must(hoverTmpl.Parse(hoverTemplate))
 
-	messageTmpl := template.New("message")
-	messageTmpl = messageTmpl.Funcs(getCustomFuncs(hoverTmpl))
-	messageTmpl = template.Must(hoverTmpl.Parse(messageTemplate))
-
-	enumTmpl := template.New("enum")
-	enumTmpl = enumTmpl.Funcs(getCustomFuncs(hoverTmpl))
-	enumTmpl = template.Must(hoverTmpl.Parse(enumTemplate))
+	template.Must(hoverTmpl.Parse(messageTemplate))
+	template.Must(hoverTmpl.Parse(oneofTemplate))
+	template.Must(hoverTmpl.Parse(enumTemplate))
 }
 
 func Hover(ctx context.Context, req *defines.HoverParams) (result *defines.Hover, err error) {
@@ -97,7 +94,7 @@ enum {{ .Name }} {
 	{{- range .Comments }}
 	{{ . }}
 	{{- end }}
-	{{ .Name }} = {{ .Value }}; {{ if .InlineComment }}{{ .InlineComment }}{{end}}
+	{{ .Name }} = {{ .Value }};{{ if .InlineComment }} {{ .InlineComment }}{{end}}
 	{{- end }}
 }
 {{- end }}`
@@ -173,7 +170,30 @@ message {{ .Name }} {
 	{{- range .Comments }}
 	{{ . }}
 	{{- end }}
-	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} // {{.InlineComment }}{{ end }}
+	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} {{.InlineComment }}{{ end }}
+{{- end }}
+{{- range .Oneofs -}}
+	{{- templateWithIndent "oneof" . 1 }}
+{{- end }}
+{{- range .Maps -}}
+	{{- range .Comments }}
+	{{ . }}
+	{{- end }}
+	map <{{.KeyType}}, {{.ValueType}}> {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} {{ .InlineComment }}{{end}}
+{{- end }}
+}
+{{- end }}`
+
+const oneofTemplate = `{{- define "oneof" }}
+{{- range .Comments }}
+{{ . }}
+{{- end }}
+oneof {{ .Name }} {
+{{- range .Fields -}}
+	{{- range .Comments }}
+	{{ . }}
+	{{- end }}
+	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};
 {{- end }}
 }
 {{- end }}`
@@ -184,6 +204,23 @@ type messageData struct {
 	Fields         []field
 	NestedEnums    []*enumData
 	NestedMessages []*messageData
+	Oneofs         []*oneOfData
+	Maps           []*mapData
+}
+
+type oneOfData struct {
+	Comments []string
+	Name     string
+	Fields   []field
+}
+
+type mapData struct {
+	Comments      []string
+	Name          string
+	KeyType       string
+	ValueType     string
+	ProtoSequence int
+	InlineComment string
 }
 
 type field struct {
@@ -239,7 +276,71 @@ func prepareMessageData(message parser.Message) *messageData {
 		data.Fields = append(data.Fields, field)
 	}
 
+	data.Oneofs = prepareOneofFields(message.Oneofs())
+
+	for _, mapItem := range message.MapFields() {
+		mapField := mapData{
+			Name:          mapItem.ProtoMapField.Name,
+			KeyType:       mapItem.ProtoMapField.KeyType,
+			ValueType:     mapItem.ProtoMapField.Type,
+			ProtoSequence: mapItem.ProtoMapField.Sequence,
+		}
+
+		if mapItem.ProtoMapField.Comment != nil {
+			mapField.Comments = formatComments(mapItem.ProtoMapField.Comment.Lines)
+		}
+
+		if mapItem.ProtoMapField.InlineComment != nil {
+			mapField.InlineComment = formatComments(mapItem.ProtoMapField.InlineComment.Lines[0:1])[0]
+		}
+
+		data.Maps = append(data.Maps, &mapField)
+	}
+
 	return &data
+}
+
+type oneOfFieldVisitor struct {
+	proto.NoopVisitor
+	visitFunc func(*proto.OneOfField)
+}
+
+func (v *oneOfFieldVisitor) VisitOneofField(of *proto.OneOfField) {
+	v.visitFunc(of)
+}
+
+func prepareOneofFields(in []parser.Oneof) []*oneOfData {
+	var out []*oneOfData
+
+	for _, oneOfItem := range in {
+
+		oneOfData := oneOfData{
+			Name: oneOfItem.Protobuf().Name,
+		}
+
+		if oneOfItem.Protobuf().Comment != nil {
+			oneOfData.Comments = formatComments(oneOfItem.Protobuf().Comment.Lines)
+		}
+
+		for _, item := range oneOfItem.Protobuf().Elements {
+
+			item.Accept(&oneOfFieldVisitor{visitFunc: func(oof *proto.OneOfField) {
+				data := field{
+					Name:          oof.Name,
+					Type:          oof.Type,
+					ProtoSequence: oof.Sequence,
+				}
+
+				if oof.Comment != nil {
+					data.Comments = formatComments(oof.Comment.Lines)
+				}
+
+				oneOfData.Fields = append(oneOfData.Fields, data)
+			}})
+		}
+		out = append(out, &oneOfData)
+	}
+	return out
 }
 
 func getCustomFuncs(parent *template.Template) template.FuncMap {
