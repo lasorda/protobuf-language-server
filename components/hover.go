@@ -175,6 +175,12 @@ message {{ .Name }} {
 {{- range .Oneofs -}}
 	{{- templateWithIndent "oneof" . 1 }}
 {{- end }}
+{{- range .Maps -}}
+	{{- range .Comments }}
+	{{ . }}
+	{{- end }}
+	map <{{.KeyType}}, {{.ValueType}}> {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} {{ .InlineComment }}{{end}}
+{{- end }}
 }
 {{- end }}`
 
@@ -199,12 +205,22 @@ type messageData struct {
 	NestedEnums    []*enumData
 	NestedMessages []*messageData
 	Oneofs         []*oneOfData
+	Maps           []*mapData
 }
 
 type oneOfData struct {
 	Comments []string
 	Name     string
 	Fields   []field
+}
+
+type mapData struct {
+	Comments      []string
+	Name          string
+	KeyType       string
+	ValueType     string
+	ProtoSequence int
+	InlineComment string
 }
 
 type field struct {
@@ -261,6 +277,25 @@ func prepareMessageData(message parser.Message) *messageData {
 	}
 
 	data.Oneofs = prepareOneofFields(message.Oneofs())
+
+	for _, mapItem := range message.MapFields() {
+		mapField := mapData{
+			Name:          mapItem.ProtoMapField.Name,
+			KeyType:       mapItem.ProtoMapField.KeyType,
+			ValueType:     mapItem.ProtoMapField.Type,
+			ProtoSequence: mapItem.ProtoMapField.Sequence,
+		}
+
+		if mapItem.ProtoMapField.Comment != nil {
+			mapField.Comments = formatComments(mapItem.ProtoMapField.Comment.Lines)
+		}
+
+		if mapItem.ProtoMapField.InlineComment != nil {
+			mapField.InlineComment = formatComments(mapItem.ProtoMapField.InlineComment.Lines[0:1])[0]
+		}
+
+		data.Maps = append(data.Maps, &mapField)
+	}
 
 	return &data
 }
