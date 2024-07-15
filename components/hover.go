@@ -94,7 +94,7 @@ enum {{ .Name }} {
 	{{- range .Comments }}
 	{{ . }}
 	{{- end }}
-	{{ .Name }} = {{ .Value }}; {{ if .InlineComment }}{{ .InlineComment }}{{end}}
+	{{ .Name }} = {{ .Value }};{{ if .InlineComment }} {{ .InlineComment }}{{end}}
 	{{- end }}
 }
 {{- end }}`
