@@ -3,13 +3,14 @@ package components
 import (
 	"bytes"
 	"context"
-	"github.com/lasorda/protobuf-language-server/proto/parser"
-	"github.com/lasorda/protobuf-language-server/proto/view"
 	"strings"
 	"text/template"
 
-	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view"
+
 	"github.com/emicklei/proto"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 var hoverTmpl *template.Template
@@ -23,6 +24,10 @@ func init() {
 	messageTmpl := template.New("message")
 	messageTmpl = messageTmpl.Funcs(getCustomFuncs(hoverTmpl))
 	messageTmpl = template.Must(hoverTmpl.Parse(messageTemplate))
+
+	oneofTmpl := template.New("oneof")
+	oneofTmpl = oneofTmpl.Funcs(getCustomFuncs(hoverTmpl))
+	oneofTmpl = template.Must(hoverTmpl.Parse(oneofTemplate))
 
 	enumTmpl := template.New("enum")
 	enumTmpl = enumTmpl.Funcs(getCustomFuncs(hoverTmpl))
@@ -175,6 +180,23 @@ message {{ .Name }} {
 	{{- end }}
 	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} // {{.InlineComment }}{{ end }}
 {{- end }}
+{{- range .Oneofs -}}
+	{{- templateWithIndent "oneof" . 1 }}
+{{- end }}
+}
+{{- end }}`
+
+const oneofTemplate = `{{- define "oneof" }}
+{{- range .Comments }}
+{{ . }}
+{{- end }}
+oneof {{ .Name }} {
+{{- range .Fields -}}
+	{{- range .Comments }}
+	{{ . }}
+	{{- end }}
+	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};
+{{- end }}
 }
 {{- end }}`
 
@@ -184,6 +206,13 @@ type messageData struct {
 	Fields         []field
 	NestedEnums    []*enumData
 	NestedMessages []*messageData
+	Oneofs         []*oneOfData
+}
+
+type oneOfData struct {
+	Comments []string
+	Name     string
+	Fields   []field
 }
 
 type field struct {
@@ -239,7 +268,52 @@ func prepareMessageData(message parser.Message) *messageData {
 		data.Fields = append(data.Fields, field)
 	}
 
+	data.Oneofs = prepareOneofFields(message.Oneofs())
+
 	return &data
+}
+
+type oneOfFieldVisitor struct {
+	proto.NoopVisitor
+	visitFunc func(*proto.OneOfField)
+}
+
+func (v *oneOfFieldVisitor) VisitOneofField(of *proto.OneOfField) {
+	v.visitFunc(of)
+}
+
+func prepareOneofFields(in []parser.Oneof) []*oneOfData {
+	var out []*oneOfData
+
+	for _, oneOfItem := range in {
+
+		oneOfData := oneOfData{
+			Name: oneOfItem.Protobuf().Name,
+		}
+
+		if oneOfItem.Protobuf().Comment != nil {
+			oneOfData.Comments = formatComments(oneOfItem.Protobuf().Comment.Lines)
+		}
+
+		for _, item := range oneOfItem.Protobuf().Elements {
+
+			item.Accept(&oneOfFieldVisitor{visitFunc: func(oof *proto.OneOfField) {
+				data := field{
+					Name:          oof.Name,
+					Type:          oof.Type,
+					ProtoSequence: oof.Sequence,
+				}
+
+				if oof.Comment != nil {
+					data.Comments = formatComments(oof.Comment.Lines)
+				}
+
+				oneOfData.Fields = append(oneOfData.Fields, data)
+			}})
+		}
+		out = append(out, &oneOfData)
+	}
+	return out
 }
 
 func getCustomFuncs(parent *template.Template) template.FuncMap {
