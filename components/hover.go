@@ -21,17 +21,9 @@ func init() {
 	hoverTmpl = hoverTmpl.Funcs(getCustomFuncs(hoverTmpl))
 	hoverTmpl = template.Must(hoverTmpl.Parse(hoverTemplate))
 
-	messageTmpl := template.New("message")
-	messageTmpl = messageTmpl.Funcs(getCustomFuncs(hoverTmpl))
-	messageTmpl = template.Must(hoverTmpl.Parse(messageTemplate))
-
-	oneofTmpl := template.New("oneof")
-	oneofTmpl = oneofTmpl.Funcs(getCustomFuncs(hoverTmpl))
-	oneofTmpl = template.Must(hoverTmpl.Parse(oneofTemplate))
-
-	enumTmpl := template.New("enum")
-	enumTmpl = enumTmpl.Funcs(getCustomFuncs(hoverTmpl))
-	enumTmpl = template.Must(hoverTmpl.Parse(enumTemplate))
+	template.Must(hoverTmpl.Parse(messageTemplate))
+	template.Must(hoverTmpl.Parse(oneofTemplate))
+	template.Must(hoverTmpl.Parse(enumTemplate))
 }
 
 func Hover(ctx context.Context, req *defines.HoverParams) (result *defines.Hover, err error) {
