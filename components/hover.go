@@ -170,7 +170,7 @@ message {{ .Name }} {
 	{{- range .Comments }}
 	{{ . }}
 	{{- end }}
-	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} // {{.InlineComment }}{{ end }}
+	{{.Optional}}{{.Repeated}}{{.Type}} {{.Name}} = {{.ProtoSequence}};{{ if .InlineComment }} {{.InlineComment }}{{ end }}
 {{- end }}
 {{- range .Oneofs -}}
 	{{- templateWithIndent "oneof" . 1 }}
