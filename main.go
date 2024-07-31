@@ -14,11 +14,13 @@ import (
 var (
 	address *string
 	logPath *string
+	stdio   *bool
 )
 
 func init() {
 	logPath = flag.String("logs", logs.DefaultLogFilePath(), "logs file path")
 	address = flag.String("listen", "", "address on which to listen for remote connections")
+	stdio = flag.Bool("stdio", false, "")
 }
 
 func main() {
