@@ -38,11 +38,11 @@ Using [lsp-config.nvim](https://github.com/neovim/nvim-lspconfig)
 local configs = require('lspconfig.configs')
 local util = require('lspconfig.util')
 
-configs.protobuf-language-server = {
+configs.protobuf_language_server = {
     default_config = {
         cmd = { 'path/to/protobuf-language-server' },
         filetypes = { 'proto', 'cpp' },
-        root_fir = util.root_pattern('.git'),
+        root_dir = util.root_pattern('.git'),
         single_file_support = true,
         settings = {
             ["additional-proto-dirs"] = [
@@ -56,7 +56,9 @@ configs.protobuf-language-server = {
 
 -- then we can continue as we do with official servers
 local lspconfig = require('lspconfig')
-lspconfig.protobuf-language-server.setup {}
+lspconfig.protobuf_language_server.setup {
+    -- your custom stuff
+}
 ```
 
 if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md)
