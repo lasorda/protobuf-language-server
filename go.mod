@@ -1,6 +1,6 @@
 module github.com/lasorda/protobuf-language-server
 
-go 1.16
+go 1.19
 
 require (
 	github.com/emicklei/proto v1.14.0
