@@ -23,7 +23,7 @@ Using [coc.nvim](https://github.com/neoclide/coc.nvim), add it to `:CocConfig`
     "languageserver": {
         "proto" :{
             "command": "protobuf-language-server",
-            "filetypes": ["proto", "cpp"]
+            "filetypes": ["proto", "cpp"],
             "settings": {
                 "additional-proto-dirs": [ ]
             }
