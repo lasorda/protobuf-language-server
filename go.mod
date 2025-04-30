@@ -3,7 +3,7 @@ module github.com/lasorda/protobuf-language-server
 go 1.19
 
 require (
-	github.com/emicklei/proto v1.14.0
+	github.com/emicklei/proto v1.14.1
 	github.com/json-iterator/go v1.1.12
 	github.com/stretchr/testify v1.7.0
 	go.lsp.dev/jsonrpc2 v0.10.0
