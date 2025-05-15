@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/lasorda/protobuf-language-server/proto/parser"
-	"github.com/lasorda/protobuf-language-server/proto/view"
 	"regexp"
 	"strings"
+
+	"github.com/lasorda/protobuf-language-server/proto/parser"
+	"github.com/lasorda/protobuf-language-server/proto/view"
 
 	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
 	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
@@ -51,37 +52,41 @@ func locationFromSymbols(symbols []SymbolDefinition) (result []defines.LocationL
 			})
 		case DefinitionTypeEnum:
 			proto := symbol.Enum.Protobuf()
-			result = append(result, defines.LocationLink{
-				TargetUri: defines.DocumentUri(proto.Position.Filename),
-				TargetSelectionRange: defines.Range{
-					Start: defines.Position{
-						Line:      symbol.Position.Line,
-						Character: symbol.Position.Character,
-					},
-					End: defines.Position{
-						Line:      symbol.Position.Line,
-						Character: symbol.Position.Character + uint(len(proto.Name)),
-					},
+			tr := defines.Range{
+				Start: defines.Position{
+					Line:      symbol.Position.Line,
+					Character: symbol.Position.Character,
 				},
+				End: defines.Position{
+					Line:      symbol.Position.Line,
+					Character: symbol.Position.Character + uint(len(proto.Name)),
+				},
+			}
+			result = append(result, defines.LocationLink{
+				TargetUri:            defines.DocumentUri(proto.Position.Filename),
+				TargetSelectionRange: tr,
+				TargetRange:          tr,
 			})
 		case DefinitionTypeMessage:
 			proto := symbol.Message.Protobuf()
-			result = append(result, defines.LocationLink{
-				TargetUri: defines.DocumentUri(proto.Position.Filename),
-				TargetSelectionRange: defines.Range{
-					Start: defines.Position{
-						Line:      symbol.Position.Line,
-						Character: symbol.Position.Character,
-					},
-					End: defines.Position{
-						Line:      symbol.Position.Line,
-						Character: symbol.Position.Character + uint(len(proto.Name)),
-					},
+			tr := defines.Range{
+				Start: defines.Position{
+					Line:      symbol.Position.Line,
+					Character: symbol.Position.Character,
 				},
+				End: defines.Position{
+					Line:      symbol.Position.Line,
+					Character: symbol.Position.Character + uint(len(proto.Name)),
+				},
+			}
+
+			result = append(result, defines.LocationLink{
+				TargetUri:            defines.DocumentUri(proto.Position.Filename),
+				TargetSelectionRange: tr,
+				TargetRange:          tr,
 			})
 		}
 	}
-
 	return result
 }
 
