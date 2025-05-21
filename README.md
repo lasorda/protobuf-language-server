@@ -11,7 +11,7 @@ Build binary
 ```sh
 go clean -modcache
 # install to `go env GOPATH`
-go install github.com/lasorda/protobuf-language-server@latest
+go install github.com/lasorda/protobuf-language-server@master
 ```
 
 Add it to your PATH
