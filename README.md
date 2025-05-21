@@ -10,7 +10,7 @@ Build binary
 
 ```sh
 go clean -modcache
-# insatll to `go env GOPATH`
+# install to `go env GOPATH`
 go install github.com/lasorda/protobuf-language-server@latest
 ```
 
