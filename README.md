@@ -4,6 +4,8 @@
 A language server implementation for Google Protocol Buffers
 
 I created this tool primarily to streamline my own workflow. While some implementations might not be optimal and the features may feel incomplete, it serves my needs well enough as it is. That said, if you've got a better solution in mind, I'd be happy to switch to yours.
+
+Rust Version: https://github.com/lasorda/protobuf-lsp
 ## installation
 
 Build binary
