@@ -70,6 +70,7 @@ if you use vscode, see [vscode-extension/README.md](./vscode-extension/README.md
 
 1. Parsing document symbols
 1. Go to definition
+1. Find references
 1. Symbol definition on hover
 1. Format file with clang-format
 1. Code completion
