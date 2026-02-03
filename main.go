@@ -42,6 +42,7 @@ func main() {
 	view.Init(server)
 	server.OnDocumentSymbolWithSliceDocumentSymbol(components.ProvideDocumentSymbol)
 	server.OnDefinition(components.JumpDefine)
+	server.OnReferences(components.FindReferences)
 	server.OnDocumentFormatting(components.Format)
 	server.OnCompletion(components.Completion)
 	server.OnHover(components.Hover)

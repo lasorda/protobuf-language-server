@@ -220,7 +220,16 @@ func generate(items []method) string {
 			}
 		}
 	}
-	pkg := "// code gen by methods_gen_test.go, do not edit!\npackage lsp\n"
+	pkg := `// code gen by methods_gen_test.go, do not edit!
+package lsp
+
+import (
+	"context"
+
+	"github.com/lasorda/protobuf-language-server/go-lsp/jsonrpc"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
+)
+`
 	code1 := strings.Join(codeBlock1, "\n")
 	code2 := strings.Join(codeBlock2, "\n")
 	code3 := strings.Join(codeBlock3, "\n")
