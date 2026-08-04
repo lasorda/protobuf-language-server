@@ -39,7 +39,28 @@ export function activate(context: ExtensionContext) {
     );
 
     // Start the client. This will also launch the server
-    client.start();
+    client.start().then(() => {
+        // Send settings on startup and on every change. We do this manually rather
+        // than via synchronize.configurationSection because vscode-languageclient
+        // wraps the payload under the section name, which the server doesn't expect.
+        sendConfiguration(client);
+        context.subscriptions.push(
+            workspace.onDidChangeConfiguration(e => {
+                if (e.affectsConfiguration('protobuf-language-server')) {
+                    sendConfiguration(client);
+                }
+            })
+        );
+    });
+}
+
+function sendConfiguration(client: LanguageClient): void {
+    const config = workspace.getConfiguration('protobuf-language-server');
+    client.sendNotification('workspace/didChangeConfiguration', {
+        settings: {
+            'additional-proto-dirs': config.get<string[]>('additional-proto-dirs', []),
+        },
+    });
 }
 
 // this method is called when your extension is deactivated

@@ -6,6 +6,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-05
+- Added `additional-proto-dirs` setting to resolve proto imports from external directories
+- `additional-proto-dirs` now accepts absolute paths
+
 ## [0.1.4] - 2026-08-04
 
 - 同时发布到 Open VSX,支持 Cursor / VSCodium 等 Open VSX 兼容编辑器

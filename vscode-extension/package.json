@@ -4,7 +4,7 @@
   "description": "A language server implementation for Google Protocol Buffers",
   "repository": "https://github.com/lasorda/protobuf-language-server",
   "publisher": "panzhihao",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "engines": {
     "vscode": "^1.91.0"
@@ -44,6 +44,12 @@
                   "type": "string",
                   "default": "protobuf-language-server",
                   "description": "Path to the protobuf-language-server binary. Defaults to 'protobuf-language-server' (looked up in PATH)."
+              },
+              "protobuf-language-server.additional-proto-dirs": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": [],
+                  "description": "Additional directories to search when resolving proto imports (relative to the workspace root or absolute)."
               }
           }
       }

@@ -290,15 +290,28 @@ func parseProto(document_uri defines.DocumentUri, data []byte) (proto parser.Pro
 func (v *view) GetDocumentUriFromImportPath(cwd defines.DocumentUri, import_name string) (defines.DocumentUri, error) {
 	pos := path.Dir(uri.URI(cwd).Filename())
 	var res defines.DocumentUri
+
+	// Absolute additional proto dirs don't need the directory walk — check them once.
+	for _, additionalProtoDir := range v.settings.AdditionalProtoDirs {
+		if filepath.IsAbs(additionalProtoDir) {
+			abs_name := filepath.Join(additionalProtoDir, import_name)
+			if v.fs.FileExists(abs_name) {
+				return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+			}
+		}
+	}
+
 	for path.Clean(pos) != "/" {
 		abs_name := path.Join(pos, import_name)
 		if v.fs.FileExists(abs_name) {
 			return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
 		}
 		for _, additionalProtoDir := range v.settings.AdditionalProtoDirs {
-			abs_name := path.Join(pos, additionalProtoDir, import_name)
-			if v.fs.FileExists(abs_name) {
-				return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+			if !filepath.IsAbs(additionalProtoDir) {
+				abs_name := path.Join(pos, additionalProtoDir, import_name)
+				if v.fs.FileExists(abs_name) {
+					return defines.DocumentUri(uri.New(path.Clean(abs_name))), nil
+				}
 			}
 		}
 		pos = path.Join(pos, "..")
