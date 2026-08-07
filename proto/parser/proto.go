@@ -110,6 +110,12 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		for _, f := range m.Fields() {
 			proto.lineToParentMessage[f.ProtoField.Position.Line] = m
 		}
+		for _, o := range m.Oneofs() {
+			proto.lineToParentMessage[o.Protobuf().Position.Line] = m
+			for _, f := range o.Fields() {
+				proto.lineToParentMessage[f.ProtoOneOfField.Position.Line] = m
+			}
+		}
 
 		for _, m := range m.NestedMessages() {
 			mapFiledToMessage(m)

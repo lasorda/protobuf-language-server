@@ -10,19 +10,19 @@ import (
 type Oneof interface {
 	Protobuf() *protobuf.Oneof
 
+	Fields() []*OneofField
 	GetFieldByName(name string) (*OneofField, bool)
-
 	GetFieldByLine(line int) (*OneofField, bool)
 }
 
 type oneof struct {
 	protoOneofField *protobuf.Oneof
 
+	fields           []*OneofField
 	fieldNameToField map[string]*OneofField
+	lineToField      map[int]*OneofField
 
-	lineToField map[int]*OneofField
-
-	mu *sync.RWMutex
+	mu sync.RWMutex
 }
 
 var _ Oneof = (*oneof)(nil)
@@ -33,8 +33,7 @@ func NewOneof(protoOneofField *protobuf.Oneof) Oneof {
 		protoOneofField: protoOneofField,
 
 		fieldNameToField: make(map[string]*OneofField),
-
-		lineToField: make(map[int]*OneofField),
+		lineToField:      make(map[int]*OneofField),
 	}
 
 	for _, e := range protoOneofField.Elements {
@@ -43,6 +42,7 @@ func NewOneof(protoOneofField *protobuf.Oneof) Oneof {
 			continue
 		}
 		f := NewOneofField(v)
+		oneof.fields = append(oneof.fields, f)
 		oneof.fieldNameToField[v.Name] = f
 		oneof.lineToField[v.Position.Line] = f
 	}
@@ -53,6 +53,14 @@ func NewOneof(protoOneofField *protobuf.Oneof) Oneof {
 // Protobuf returns *protobuf.Oneof.
 func (o *oneof) Protobuf() *protobuf.Oneof {
 	return o.protoOneofField
+}
+
+// Fields returns slice of OneofField.
+func (o *oneof) Fields() (fs []*OneofField) {
+	o.mu.RLock()
+	fs = o.fields
+	o.mu.RUnlock()
+	return
 }
 
 // GetFieldByName gets EnumField  by provided name.

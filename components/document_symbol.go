@@ -31,6 +31,14 @@ func calculateEndPosition(startLine int, elements []protobuf.Visitee) uint {
 			if v.Position.Line > maxLine {
 				maxLine = v.Position.Line
 			}
+			// Recursively check nested oneof elements
+			if nestedEnd := int(calculateEndPosition(v.Position.Line, v.Elements)); nestedEnd > maxLine {
+				maxLine = nestedEnd
+			}
+		case *protobuf.OneOfField:
+			if v.Position.Line > maxLine {
+				maxLine = v.Position.Line
+			}
 		case *protobuf.EnumField:
 			if v.Position.Line > maxLine {
 				maxLine = v.Position.Line
