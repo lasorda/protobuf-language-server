@@ -262,11 +262,17 @@ func searchTypeNested(proto_file view.ProtoFile, word string, line int) (result 
 }
 
 func searchTypeNested0(proto_file view.ProtoFile, word string, parentMessage parser.Message) []SymbolDefinition {
+	var nested []SymbolDefinition
 	if message, ok := parentMessage.GetNestedMessageByName(word); ok {
-		return []SymbolDefinition{messageSymbolDefinition(proto_file, message)}
-	} else if enum, ok := parentMessage.GetNestedEnumByName(word); ok {
-		return []SymbolDefinition{enumSymbolDefinition(proto_file, enum)}
-	} else if parentMessage.Protobuf().Name == word {
+		nested = append(nested, messageSymbolDefinition(proto_file, message))
+	}
+	if enum, ok := parentMessage.GetNestedEnumByName(word); ok {
+		nested = append(nested, enumSymbolDefinition(proto_file, enum))
+	}
+	if len(nested) > 0 {
+		return nested
+	}
+	if parentMessage.Protobuf().Name == word {
 		return []SymbolDefinition{messageSymbolDefinition(proto_file, parentMessage)}
 	}
 	return nil
@@ -285,15 +291,15 @@ func traverseNestedType(from []SymbolDefinition, parts []string) []SymbolDefinit
 		if def.Type != DefinitionTypeMessage {
 			continue
 		}
+		var nested []SymbolDefinition
 		if msg, ok := def.Message.GetNestedMessageByName(first); ok {
-			msg.Protobuf().Position.Filename = string(def.ProtoFile.URI())
-			return traverseNestedType([]SymbolDefinition{messageSymbolDefinition(def.ProtoFile, msg)}, rest)
-		} else if enum, ok := def.Message.GetNestedEnumByName(first); ok {
-			// Don't bother traversing the rest if this is an enum
-			if len(rest) == 0 {
-				return []SymbolDefinition{enumSymbolDefinition(def.ProtoFile, enum)}
-			}
-			break
+			nested = append(nested, messageSymbolDefinition(def.ProtoFile, msg))
+		}
+		if enum, ok := def.Message.GetNestedEnumByName(first); ok {
+			nested = append(nested, enumSymbolDefinition(def.ProtoFile, enum))
+		}
+		if len(nested) > 0 {
+			return traverseNestedType(nested, rest)
 		}
 	}
 	return nil
@@ -322,10 +328,15 @@ func resolveLocalSymbol(ctx context.Context, proto_file view.ProtoFile, my_packa
 	}
 	line := int(position.Line + 1)
 	if len(rest) == 0 {
-		if message, ok := proto_file.Proto().GetMessageByLine(line); ok {
-			return []SymbolDefinition{messageSymbolDefinition(proto_file, message)}
-		} else if enum, ok := proto_file.Proto().GetEnumByLine(line); ok {
-			return []SymbolDefinition{enumSymbolDefinition(proto_file, enum)}
+		var current []SymbolDefinition
+		if message, ok := proto_file.Proto().GetMessageByLine(line); ok && message.Protobuf().Name == first {
+			current = append(current, messageSymbolDefinition(proto_file, message))
+		}
+		if enum, ok := proto_file.Proto().GetEnumByLine(line); ok && enum.Protobuf().Name == first {
+			current = append(current, enumSymbolDefinition(proto_file, enum))
+		}
+		if len(current) > 0 {
+			return current
 		}
 	}
 	res, err := searchTypeNested(proto_file, first, line)
