@@ -3,9 +3,8 @@ package parser
 import (
 	"sync"
 
-	"github.com/lasorda/protobuf-language-server/go-lsp/logs"
-	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 	protobuf "github.com/emicklei/proto"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
 )
 
 // Proto is a registry for protobuf proto.
@@ -31,8 +30,7 @@ type Proto interface {
 	GetMessageFieldByLine(line int) (*MessageField, bool)
 	GetEnumFieldByLine(line int) (*EnumField, bool)
 
-	GetAllParentMessage(line int) []Message
-	GetAllParentEnum(line int) []Enum
+	GetParentMessage(line int) (m Message, ok bool)
 }
 
 type proto struct {
@@ -287,31 +285,7 @@ func (p *proto) GetEnumFieldByLine(line int) (f *EnumField, ok bool) {
 	return
 }
 
-func (p *proto) GetAllParentMessage(line int) (res []Message) {
-	m, ok := p.lineToParentMessage[line]
-	if !ok {
-		return
-	}
-	for m != nil {
-		for _, m_br := range m.NestedMessages() {
-			res = append(res, m_br)
-		}
-		m = m.GetParentMessage()
-	}
-	logs.Printf("ret %+v", res)
-	return
-}
-
-func (p *proto) GetAllParentEnum(line int) (res []Enum) {
-	m, ok := p.lineToParentMessage[line]
-	if !ok {
-		return
-	}
-	for m != nil {
-		for _, e_br := range m.NestedEnums() {
-			res = append(res, e_br)
-		}
-		m = m.GetParentMessage()
-	}
+func (p *proto) GetParentMessage(line int) (m Message, ok bool) {
+	m, ok = p.lineToParentMessage[line]
 	return
 }

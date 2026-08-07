@@ -15,6 +15,7 @@ import (
 )
 
 type SymbolDefinition struct {
+	ProtoFile view.ProtoFile
 	Filename  string
 	Position  defines.Position
 	Type      string
@@ -116,7 +117,7 @@ func JumpPbHeaderDefine(ctx context.Context, req *defines.TextDocumentPositionPa
 	logs.Printf("line %v, word %v", line, word)
 	res, err := searchType(proto_file, word)
 	// better than nothing
-	if (res == nil || len(res) == 0) && strings.Contains(word, "_") {
+	if len(res) == 0 && strings.Contains(word, "_") {
 		split_res := strings.Split(word, "_")
 		if len(split_res) > 0 {
 			res, err = searchType(proto_file, split_res[0])
@@ -142,43 +143,26 @@ func JumpProtoDefine(ctx context.Context, position *defines.TextDocumentPosition
 	}
 
 	// type define
-	package_and_word := getWord(line_str, int(position.Position.Character), true)
-	pos := strings.LastIndexAny(package_and_word, ".")
-
+	id := getWord(line_str, int(position.Position.Character), true)
 	my_package := ""
 	if len(proto_file.Proto().Packages()) > 0 {
 		my_package = proto_file.Proto().Packages()[0].ProtoPackage.Name
 	}
 
-	var package_name, word string
-	word_only := true
-	if pos == -1 {
-		package_name = my_package
-		word = package_and_word
-	} else {
-		package_name, word = package_and_word[0:pos], package_and_word[pos+1:]
-		word_only = false
+	// We need to split id into the package name and the rest.
+	// While each segment of the package name is conventionally lower case, protobuf does not require it.
+	// So in the worst case, we may need to run quite a lot of queries.
+	//
+	// To ensure consistently fast operations, we do not implement that for now.
+	// Instead, use a heuristic to try to resolve the symbol:
+	// assume the first segment of id that starts with a capital letter is a message or an enum.
+	// Everything that came before that segment is part of the package name.
+	package_name, rest, ok := splitPackageFast(id)
+	if ok && package_name != "" {
+		package_name = strings.TrimPrefix(package_name, ".")
+		return resolvePackageSymbol(ctx, proto_file, my_package, package_name, rest), nil
 	}
-
-	if word_only {
-		res, err := searchTypeNested(proto_file, word, int(position.Position.Line+1))
-		if err == nil && len(res) > 0 {
-			return res, nil
-		}
-	}
-	if my_package == package_name {
-		res, err := searchType(proto_file, word)
-		if err == nil && len(res) > 0 {
-			return res, nil
-		}
-	}
-
-	res, err := searchImport(proto_file, package_name, my_package, word, "")
-	if err == nil && len(res) > 0 {
-		return res, nil
-	}
-
-	return nil, nil
+	return resolveLocalSymbol(ctx, proto_file, my_package, position.Position, id), nil
 }
 
 func searchImport(proto view.ProtoFile, package_name, my_package, word, kind string) (result []SymbolDefinition, err error) {
@@ -209,7 +193,7 @@ func searchImport(proto view.ProtoFile, package_name, my_package, word, kind str
 			}
 		}
 		res, err := searchImport(import_file, package_name, my_package, word, "public")
-		if res != nil && len(res) > 0 {
+		if len(res) > 0 {
 			return res, err
 		}
 	}
@@ -251,41 +235,124 @@ func jumpImport(ctx context.Context, position *defines.TextDocumentPositionParam
 	}}, nil
 }
 
+// searchTypeNested resolves symbol within the environment at the given line.
+//
+// Protobuf has the following precedence ordering:
+//  1. the containing message's nested types
+//  2. the containing message
+//  3. the containing message's parent's nested types
+//  4. the containing message's parent
+//  5. the containing message's parent's parent's nested types
+//  6. the containing message's parent's parent
+//  7. ...
 func searchTypeNested(proto_file view.ProtoFile, word string, line int) (result []SymbolDefinition, err error) {
-	// search message
-	for _, message := range proto_file.Proto().GetAllParentMessage(line) {
-		if message.Protobuf().Name == word {
-			message.Protobuf().Position.Filename = string(proto_file.URI())
-			result = append(result, messageSymbolDefinition(proto_file, message))
-		}
-	}
-	// search enum
-	for _, enum := range proto_file.Proto().GetAllParentEnum(line) {
-		if enum.Protobuf().Name == word {
-			enum.Protobuf().Position.Filename = string(proto_file.URI())
-			result = append(result, enumSymbolDefinition(proto_file, enum))
-		}
-	}
-
-	if len(result) == 0 {
+	message, ok := proto_file.Proto().GetParentMessage(line)
+	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrSymbolNotFound, word)
 	}
 
-	return result, nil
+	for message != nil {
+		result = searchTypeNested0(proto_file, word, message)
+		if len(result) > 0 {
+			return result, nil
+		}
+		message = message.GetParentMessage()
+	}
+	return nil, fmt.Errorf("%w: %s", ErrSymbolNotFound, word)
+}
+
+func searchTypeNested0(proto_file view.ProtoFile, word string, parentMessage parser.Message) []SymbolDefinition {
+	if message, ok := parentMessage.GetNestedMessageByName(word); ok {
+		return []SymbolDefinition{messageSymbolDefinition(proto_file, message)}
+	} else if enum, ok := parentMessage.GetNestedEnumByName(word); ok {
+		return []SymbolDefinition{enumSymbolDefinition(proto_file, enum)}
+	} else if parentMessage.Protobuf().Name == word {
+		return []SymbolDefinition{messageSymbolDefinition(proto_file, parentMessage)}
+	}
+	return nil
+}
+
+// traverseNestedType returns A.B.C when given from=A and parts=[B C].
+func traverseNestedType(from []SymbolDefinition, parts []string) []SymbolDefinition {
+	if len(parts) == 0 {
+		return from
+	}
+	first, rest := parts[0], parts[1:]
+	if first == "" {
+		return from
+	}
+	for _, def := range from {
+		if def.Type != DefinitionTypeMessage {
+			continue
+		}
+		if msg, ok := def.Message.GetNestedMessageByName(first); ok {
+			msg.Protobuf().Position.Filename = string(def.ProtoFile.URI())
+			return traverseNestedType([]SymbolDefinition{messageSymbolDefinition(def.ProtoFile, msg)}, rest)
+		} else if enum, ok := def.Message.GetNestedEnumByName(first); ok {
+			// Don't bother traversing the rest if this is an enum
+			if len(rest) == 0 {
+				return []SymbolDefinition{enumSymbolDefinition(def.ProtoFile, enum)}
+			}
+			break
+		}
+	}
+	return nil
+}
+
+func resolvePackageSymbol(ctx context.Context, proto_file view.ProtoFile, my_package, package_name, id string) []SymbolDefinition {
+	parts := strings.Split(id, ".")
+	first, rest := parts[0], parts[1:]
+
+	if my_package == package_name {
+		res, err := searchType(proto_file, first)
+		if err == nil && len(res) > 0 {
+			return traverseNestedType(res, rest)
+		}
+	}
+
+	res, _ := searchImport(proto_file, package_name, my_package, first, "")
+	return traverseNestedType(res, rest)
+}
+
+func resolveLocalSymbol(ctx context.Context, proto_file view.ProtoFile, my_package string, position defines.Position, id string) []SymbolDefinition {
+	parts := strings.Split(id, ".")
+	first, rest := parts[0], parts[1:]
+	if first == "" {
+		return nil
+	}
+	res, err := searchTypeNested(proto_file, first, int(position.Line+1))
+	if err == nil && len(res) > 0 {
+		return traverseNestedType(res, rest)
+	}
+	return resolvePackageSymbol(ctx, proto_file, my_package, my_package, id)
+}
+
+func splitPackageFast(id string) (package_name, rest string, ok bool) {
+	idx := 0
+	for _, part := range strings.SplitAfter(id, ".") {
+		if part != "" && 'A' <= part[0] && part[0] <= 'Z' {
+			// idx == 1 captures the special case of ".A",
+			// where we want to return package_name = ".".
+			if idx == 0 || idx == 1 {
+				return id[:idx], id[idx:], true
+			}
+			return id[:idx-1], id[idx:], true
+		}
+		idx += len(part)
+	}
+	return "", "", false
 }
 
 func searchType(proto_file view.ProtoFile, word string) (result []SymbolDefinition, err error) {
 	// search message
 	for _, message := range proto_file.Proto().Messages() {
 		if message.Protobuf().Name == word {
-			message.Protobuf().Position.Filename = string(proto_file.URI())
 			result = append(result, messageSymbolDefinition(proto_file, message))
 		}
 	}
 	// search enum
 	for _, enum := range proto_file.Proto().Enums() {
 		if enum.Protobuf().Name == word {
-			enum.Protobuf().Position.Filename = string(proto_file.URI())
 			result = append(result, enumSymbolDefinition(proto_file, enum))
 		}
 	}
@@ -300,8 +367,10 @@ func searchType(proto_file view.ProtoFile, word string) (result []SymbolDefiniti
 func messageSymbolDefinition(proto_file view.ProtoFile, message parser.Message) SymbolDefinition {
 	line := proto_file.ReadLine(message.Protobuf().Position.Line - 1)
 	symbolStart := strings.Index(line, message.Protobuf().Name)
+	message.Protobuf().Position.Filename = string(proto_file.URI())
 	return SymbolDefinition{
-		Filename: string(proto_file.URI()),
+		ProtoFile: proto_file,
+		Filename:  string(proto_file.URI()),
 		Position: defines.Position{
 			Line:      uint(message.Protobuf().Position.Line - 1),
 			Character: uint(symbolStart),
@@ -314,8 +383,10 @@ func messageSymbolDefinition(proto_file view.ProtoFile, message parser.Message) 
 func enumSymbolDefinition(proto_file view.ProtoFile, enum parser.Enum) SymbolDefinition {
 	line := proto_file.ReadLine(enum.Protobuf().Position.Line - 1)
 	symbolStart := strings.Index(line, enum.Protobuf().Name)
+	enum.Protobuf().Position.Filename = string(proto_file.URI())
 	return SymbolDefinition{
-		Filename: string(proto_file.URI()),
+		ProtoFile: proto_file,
+		Filename:  string(proto_file.URI()),
 		Position: defines.Position{
 			Line:      uint(enum.Protobuf().Position.Line - 1),
 			Character: uint(symbolStart),

@@ -239,3 +239,72 @@ func Test_qualifierReferencesPackage(t *testing.T) {
 		})
 	}
 }
+
+func Test_splitPackageFast(t *testing.T) {
+	tests := []struct {
+		name         string
+		package_name string
+		rest         string
+		ok           bool
+	}{
+		{
+			name:         "Abc",
+			package_name: "",
+			rest:         "Abc",
+			ok:           true,
+		},
+		{
+			name:         ".Abc",
+			package_name: ".",
+			rest:         "Abc",
+			ok:           true,
+		},
+		{
+			name:         "Abc.Def",
+			package_name: "",
+			rest:         "Abc.Def",
+			ok:           true,
+		},
+		{
+			name:         "abc.Def",
+			package_name: "abc",
+			rest:         "Def",
+			ok:           true,
+		},
+		{
+			name:         ".abc.Def",
+			package_name: ".abc",
+			rest:         "Def",
+			ok:           true,
+		},
+		{
+			name: "",
+			ok:   false,
+		},
+		{
+			name: ".",
+			ok:   false,
+		},
+		{
+			name: ".foo.bar",
+			ok:   false,
+		},
+		{
+			name: ".foo.bar.",
+			ok:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			package_name, rest, ok := splitPackageFast(tt.name)
+			if ok != tt.ok {
+				t.Errorf("splitPackageFast(%q) = _, _, %v, want %v",
+					tt.name, ok, tt.ok)
+			}
+			if ok && (package_name != tt.package_name || rest != tt.rest) {
+				t.Errorf("splitPackageFast(%q) = %q, %q, %v, want %q, %q, %v",
+					tt.name, package_name, rest, ok, tt.package_name, tt.rest, tt.ok)
+			}
+		})
+	}
+}
