@@ -57,11 +57,21 @@ func Test_getWord(t *testing.T) {
 			want: "protobuf",
 		},
 		{
-			name: "qualified name with dot",
+			name: "qualified name with dot incomplete",
 			args: args{
 				// cursor is right here                                           |
 				line:       "rpc MethodName(SearchDashboardReq) returns (google.protobuf.Empty) {",
 				idx:        53,
+				includeDot: true,
+			},
+			want: "google.protobuf",
+		},
+		{
+			name: "qualified name with dot complete",
+			args: args{
+				// cursor is right here                                                   |
+				line:       "rpc MethodName(SearchDashboardReq) returns (google.protobuf.Empty) {",
+				idx:        61,
 				includeDot: true,
 			},
 			want: "google.protobuf.Empty",

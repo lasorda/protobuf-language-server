@@ -337,18 +337,22 @@ func getWord(line string, idx int, includeDot bool) string {
 	}
 	l, r := idx, idx
 
-	isWordChar := func(ch byte) bool {
+	isWordChar := func(ch byte, includeDot bool) bool {
 		return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || (ch == '.' && includeDot)
 	}
 
-	for l >= 0 && isWordChar(line[l]) {
+	for l >= 0 && isWordChar(line[l], includeDot) {
 		l--
 	}
 	if l != idx {
 		l += 1
 	}
 
-	for r < len(line) && isWordChar(line[r]) {
+	// Don't include dot when looking ahead, since if the cursor is at
+	//   abc.def.Ghi.Xyz
+	//            ^
+	// we want to navigate to abc.def.Ghi, not abc.def.Ghi.Xyz.
+	for r < len(line) && isWordChar(line[r], false) {
 		r++
 	}
 	return line[l:r]
