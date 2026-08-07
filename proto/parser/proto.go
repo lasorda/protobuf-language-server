@@ -103,8 +103,13 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		default:
 		}
 	}
-	var mapFiledToMessage func(Message)
-	mapFiledToMessage = func(m Message) {
+	addEnum := func(e Enum) {
+		proto.lineToEnum[e.Protobuf().Position.Line] = e
+	}
+	var addMessage func(Message)
+	addMessage = func(m Message) {
+		proto.lineToMessage[m.Protobuf().Position.Line] = m
+
 		for _, f := range m.Fields() {
 			proto.lineToParentMessage[f.ProtoField.Position.Line] = m
 		}
@@ -116,7 +121,10 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 		}
 
 		for _, m := range m.NestedMessages() {
-			mapFiledToMessage(m)
+			addMessage(m)
+		}
+		for _, e := range m.NestedEnums() {
+			addEnum(e)
 		}
 	}
 	for _, p := range proto.packages {
@@ -126,13 +134,12 @@ func NewProto(document_uri defines.DocumentUri, protoProto *protobuf.Proto) Prot
 
 	for _, m := range proto.messages {
 		proto.messageNameToMessage[m.Protobuf().Name] = m
-		proto.lineToMessage[m.Protobuf().Position.Line] = m
-		mapFiledToMessage(m)
+		addMessage(m)
 	}
 
 	for _, e := range proto.enums {
 		proto.enumNameToEnum[e.Protobuf().Name] = e
-		proto.lineToEnum[e.Protobuf().Position.Line] = e
+		addEnum(e)
 	}
 
 	for _, s := range proto.services {

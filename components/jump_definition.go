@@ -320,7 +320,15 @@ func resolveLocalSymbol(ctx context.Context, proto_file view.ProtoFile, my_packa
 	if first == "" {
 		return nil
 	}
-	res, err := searchTypeNested(proto_file, first, int(position.Line+1))
+	line := int(position.Line + 1)
+	if len(rest) == 0 {
+		if message, ok := proto_file.Proto().GetMessageByLine(line); ok {
+			return []SymbolDefinition{messageSymbolDefinition(proto_file, message)}
+		} else if enum, ok := proto_file.Proto().GetEnumByLine(line); ok {
+			return []SymbolDefinition{enumSymbolDefinition(proto_file, enum)}
+		}
+	}
+	res, err := searchTypeNested(proto_file, first, line)
 	if err == nil && len(res) > 0 {
 		return traverseNestedType(res, rest)
 	}
