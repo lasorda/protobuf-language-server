@@ -157,7 +157,7 @@ func JumpProtoDefine(ctx context.Context, position *defines.TextDocumentPosition
 	// Instead, use a heuristic to try to resolve the symbol:
 	// assume the first segment of id that starts with a capital letter is a message or an enum.
 	// Everything that came before that segment is part of the package name.
-	package_name, rest, ok := splitPackageFast(id)
+	package_name, rest, ok := splitPackage(id)
 	if ok && package_name != "" {
 		package_name = strings.TrimPrefix(package_name, ".")
 		return resolvePackageSymbol(ctx, proto_file, my_package, package_name, rest), nil
@@ -346,7 +346,7 @@ func resolveLocalSymbol(ctx context.Context, proto_file view.ProtoFile, my_packa
 	return resolvePackageSymbol(ctx, proto_file, my_package, my_package, id)
 }
 
-func splitPackageFast(id string) (package_name, rest string, ok bool) {
+func splitPackage(id string) (package_name, rest string, ok bool) {
 	idx := 0
 	for _, part := range strings.SplitAfter(id, ".") {
 		if part != "" && 'A' <= part[0] && part[0] <= 'Z' {

@@ -240,7 +240,7 @@ func Test_qualifierReferencesPackage(t *testing.T) {
 	}
 }
 
-func Test_splitPackageFast(t *testing.T) {
+func Test_splitPackage(t *testing.T) {
 	tests := []struct {
 		name         string
 		package_name string
@@ -296,13 +296,13 @@ func Test_splitPackageFast(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			package_name, rest, ok := splitPackageFast(tt.name)
+			package_name, rest, ok := splitPackage(tt.name)
 			if ok != tt.ok {
-				t.Errorf("splitPackageFast(%q) = _, _, %v, want %v",
+				t.Errorf("splitPackage(%q) = _, _, %v, want %v",
 					tt.name, ok, tt.ok)
 			}
 			if ok && (package_name != tt.package_name || rest != tt.rest) {
-				t.Errorf("splitPackageFast(%q) = %q, %q, %v, want %q, %q, %v",
+				t.Errorf("splitPackage(%q) = %q, %q, %v, want %q, %q, %v",
 					tt.name, package_name, rest, ok, tt.package_name, tt.rest, tt.ok)
 			}
 		})
