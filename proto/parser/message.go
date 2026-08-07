@@ -125,7 +125,7 @@ func NewMessage(protoMessage *protobuf.Message) Message {
 		m.nestedEnumNameToEnum[f.Protobuf().Name] = f
 	}
 
-	for _, f := range m.nestedMessageNameToMessage {
+	for _, f := range m.nestedMessages {
 		m.nestedMessageNameToMessage[f.Protobuf().Name] = f
 	}
 	return m
