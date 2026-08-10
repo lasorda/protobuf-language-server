@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
@@ -9,6 +10,9 @@ import (
 )
 
 func Test_SettingsFromInterface(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	require.NoError(t, err)
+
 	tests := []struct {
 		name    string
 		input   interface{}
@@ -30,6 +34,13 @@ func Test_SettingsFromInterface(t *testing.T) {
 				},
 			},
 			want: Settings{AdditionalProtoDirs: []string{"/deps", "vendor"}},
+		},
+		{
+			name: "~ in additional-proto-dirs is expanded to home directory",
+			input: map[string]interface{}{
+				"additional-proto-dirs": []interface{}{"~/protos"},
+			},
+			want: Settings{AdditionalProtoDirs: []string{homeDir + "/protos"}},
 		},
 		{
 			name:  "empty settings returns zero value",

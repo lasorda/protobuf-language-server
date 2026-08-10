@@ -3,6 +3,8 @@ package view
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 )
 
 const (
@@ -38,6 +40,13 @@ func SettingsFromInterface(in interface{}) (*Settings, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s: key = %s", ErrRepackingSettings, err.Error(), additionalProtoDirsKey)
 		}
+		for i, dir := range protoDirs {
+			expanded, err := expandTilde(dir)
+			if err != nil {
+				return nil, fmt.Errorf("%w: %s: key = %s", ErrRepackingSettings, err.Error(), additionalProtoDirsKey)
+			}
+			protoDirs[i] = expanded
+		}
 		settings.AdditionalProtoDirs = protoDirs
 	}
 
@@ -57,6 +66,17 @@ func findNestedSettingsMap(settingsMap map[string]interface{}) map[string]interf
 		}
 	}
 	return nil
+}
+
+func expandTilde(path string) (string, error) {
+	if !strings.HasPrefix(path, "~/") {
+		return path, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return home + path[1:], nil
 }
 
 func StringsSliceFromInterface(in interface{}) ([]string, error) {
