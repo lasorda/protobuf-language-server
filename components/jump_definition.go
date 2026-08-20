@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf16"
 
 	"github.com/lasorda/protobuf-language-server/proto/parser"
 	"github.com/lasorda/protobuf-language-server/proto/view"
@@ -15,13 +16,14 @@ import (
 )
 
 type SymbolDefinition struct {
-	ProtoFile view.ProtoFile
-	Filename  string
-	Position  defines.Position
-	Type      string
-	Enum      parser.Enum
-	Message   parser.Message
-	ImportUri string
+	ProtoFile            view.ProtoFile
+	Filename             string
+	Position             defines.Position
+	Type                 string
+	Enum                 parser.Enum
+	Message              parser.Message
+	ImportUri            string
+	OriginSelectionRange *defines.Range
 }
 
 const (
@@ -49,7 +51,8 @@ func locationFromSymbols(symbols []SymbolDefinition) (result []defines.LocationL
 		switch symbol.Type {
 		case DefinitionTypeImport:
 			result = append(result, defines.LocationLink{
-				TargetUri: defines.DocumentUri(symbol.ImportUri),
+				OriginSelectionRange: symbol.OriginSelectionRange,
+				TargetUri:            defines.DocumentUri(symbol.ImportUri),
 			})
 		case DefinitionTypeEnum:
 			proto := symbol.Enum.Protobuf()
@@ -219,20 +222,47 @@ func qualifierReferencesPackage(query_pkg string, candidate_pkg string, current_
 	return current_pkg == prefix || strings.HasPrefix(current_pkg, prefix+".")
 }
 
+var importPathPattern = regexp.MustCompile(`"([^"]+)"`)
+
 func jumpImport(ctx context.Context, position *defines.TextDocumentPositionParams, line_str string) (result []SymbolDefinition, err error) {
-	r, _ := regexp.Compile("\"(.+)\\/([^\\/]+)\"")
-	pos := r.FindStringIndex(line_str)
-	if pos == nil {
-		return nil, fmt.Errorf("import match failed")
+	importPath, selectionRange, err := importPathSelectionRange(line_str, position.Position.Line)
+	if err != nil {
+		return nil, err
 	}
-	import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(position.TextDocument.Uri, line_str[pos[0]+1:pos[1]-1])
+	import_uri, err := view.ViewManager.GetDocumentUriFromImportPath(position.TextDocument.Uri, importPath)
 	if err != nil {
 		return nil, err
 	}
 	return []SymbolDefinition{{
-		Type:      DefinitionTypeImport,
-		ImportUri: string(import_uri),
+		Type:                 DefinitionTypeImport,
+		ImportUri:            string(import_uri),
+		OriginSelectionRange: &selectionRange,
 	}}, nil
+}
+
+// importPathSelectionRange extracts the quoted import path and returns the
+// UTF-16-based LSP range that selects the entire path without its quotes.
+func importPathSelectionRange(line string, lineNumber uint) (string, defines.Range, error) {
+	match := importPathPattern.FindStringSubmatchIndex(line)
+	if match == nil {
+		return "", defines.Range{}, fmt.Errorf("import match failed")
+	}
+
+	pathStart, pathEnd := match[2], match[3]
+	return line[pathStart:pathEnd], defines.Range{
+		Start: defines.Position{
+			Line:      lineNumber,
+			Character: utf16Length(line[:pathStart]),
+		},
+		End: defines.Position{
+			Line:      lineNumber,
+			Character: utf16Length(line[:pathEnd]),
+		},
+	}, nil
+}
+
+func utf16Length(value string) uint {
+	return uint(len(utf16.Encode([]rune(value))))
 }
 
 // searchTypeNested resolves symbol within the environment at the given line.
