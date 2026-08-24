@@ -109,6 +109,18 @@ func TestImportPathSelectionRangeRejectsMalformedImport(t *testing.T) {
 	require.EqualError(t, err, "import match failed")
 }
 
+func TestImportPathSelectionRangeExcludesQuotes(t *testing.T) {
+	line := `import "foo/bar.proto";`
+	path, selectionRange, err := importPathSelectionRange(line, 0)
+	require.NoError(t, err)
+
+	start := int(selectionRange.Start.Character)
+	end := int(selectionRange.End.Character)
+	require.Equal(t, path, line[start:end])
+	require.Equal(t, byte('"'), line[start-1])
+	require.Equal(t, byte('"'), line[end])
+}
+
 func Test_getWord(t *testing.T) {
 	type args struct {
 		line       string
