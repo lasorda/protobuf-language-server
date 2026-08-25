@@ -6,6 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-08-25
+- 跳转定义: hover import 语句时高亮完整导入路径(而非单个路径片段)
+- 修复不含 `/` 的导入路径(如 `import "types.proto";`)无法跳转定义的问题
+- 修复行尾注释包含引号路径时提取错误导入路径的问题
+
 ## [0.1.7] - 2026-08-11
 - `additional-proto-dirs` now expands a leading `~/` to the user's home directory
 

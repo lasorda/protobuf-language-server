@@ -21,10 +21,10 @@ The Open VSX build also works in Cursor / VSCodium / Windsurf and other Open VSX
 Download the `.vsix` from [GitHub Releases](https://github.com/lasorda/protobuf-language-server/releases), then:
 
 ```sh
-code   --install-extension protobuf-language-server-0.1.7.vsix
+code   --install-extension protobuf-language-server-0.1.8.vsix
 # Cursor / VSCodium
-cursor --install-extension protobuf-language-server-0.1.7.vsix
-codium --install-extension protobuf-language-server-0.1.7.vsix
+cursor --install-extension protobuf-language-server-0.1.8.vsix
+codium --install-extension protobuf-language-server-0.1.8.vsix
 ```
 
 ## Prerequisites
