@@ -1,9 +1,125 @@
 package components
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp"
+	"github.com/lasorda/protobuf-language-server/go-lsp/lsp/defines"
+	"github.com/lasorda/protobuf-language-server/proto/view"
+	"github.com/stretchr/testify/require"
+	"go.lsp.dev/uri"
 )
+
+func TestJumpDefineImportSelectsEntirePath(t *testing.T) {
+	root := t.TempDir()
+	importPath := "proto/common/types.proto"
+	importedFilename := filepath.Join(root, filepath.FromSlash(importPath))
+	require.NoError(t, os.MkdirAll(filepath.Dir(importedFilename), 0o755))
+	require.NoError(t, os.WriteFile(importedFilename, []byte("syntax = \"proto3\";\n"), 0o644))
+
+	importLine := `import "proto/common/types.proto";`
+	sourceFilename := filepath.Join(root, "service.proto")
+	require.NoError(t, os.WriteFile(sourceFilename, []byte("syntax = \"proto3\";\n"+importLine+"\n"), 0o644))
+
+	previousViewManager := view.ViewManager
+	view.Init(lsp.NewServer(&lsp.Options{}))
+	t.Cleanup(func() {
+		view.ViewManager = previousViewManager
+	})
+
+	sourceURI := defines.DocumentUri(uri.New(sourceFilename))
+	links, err := JumpDefine(context.Background(), &defines.DefinitionParams{
+		TextDocumentPositionParams: defines.TextDocumentPositionParams{
+			TextDocument: defines.TextDocumentIdentifier{Uri: sourceURI},
+			Position: defines.Position{
+				Line:      1,
+				Character: uint(strings.Index(importLine, "common")),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, *links, 1)
+
+	pathStart := uint(strings.Index(importLine, importPath))
+	require.Equal(t, defines.DocumentUri(uri.New(importedFilename)), (*links)[0].TargetUri)
+	require.Equal(t, &defines.Range{
+		Start: defines.Position{Line: 1, Character: pathStart},
+		End:   defines.Position{Line: 1, Character: pathStart + uint(len(importPath))},
+	}, (*links)[0].OriginSelectionRange)
+}
+
+func TestImportPathSelectionRange(t *testing.T) {
+	tests := []struct {
+		name      string
+		line      string
+		wantPath  string
+		wantStart uint
+		wantEnd   uint
+	}{
+		{
+			name:      "regular import",
+			line:      `import "foo/bar.proto";`,
+			wantPath:  "foo/bar.proto",
+			wantStart: 8,
+			wantEnd:   21,
+		},
+		{
+			name:      "public import",
+			line:      `import public "foo/bar.proto";`,
+			wantPath:  "foo/bar.proto",
+			wantStart: 15,
+			wantEnd:   28,
+		},
+		{
+			name:      "import without directory",
+			line:      `import "types.proto";`,
+			wantPath:  "types.proto",
+			wantStart: 8,
+			wantEnd:   19,
+		},
+		{
+			name:      "UTF-16 character offsets",
+			line:      `import "foo/😀.proto";`,
+			wantPath:  "foo/😀.proto",
+			wantStart: 8,
+			wantEnd:   20,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path, selectionRange, err := importPathSelectionRange(tt.line, 3)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, path)
+			require.Equal(t, defines.Range{
+				Start: defines.Position{Line: 3, Character: tt.wantStart},
+				End:   defines.Position{Line: 3, Character: tt.wantEnd},
+			}, selectionRange)
+		})
+	}
+}
+
+func TestImportPathSelectionRangeRejectsMalformedImport(t *testing.T) {
+	_, _, err := importPathSelectionRange("import types.proto;", 0)
+	require.EqualError(t, err, "import match failed")
+}
+
+func TestImportPathSelectionRangeExcludesQuotes(t *testing.T) {
+	line := `import "foo/bar.proto";`
+	path, selectionRange, err := importPathSelectionRange(line, 0)
+	require.NoError(t, err)
+
+	start := int(selectionRange.Start.Character)
+	end := int(selectionRange.End.Character)
+	require.Equal(t, path, line[start:end])
+	require.Equal(t, byte('"'), line[start-1])
+	require.Equal(t, byte('"'), line[end])
+}
 
 func Test_getWord(t *testing.T) {
 	type args struct {
